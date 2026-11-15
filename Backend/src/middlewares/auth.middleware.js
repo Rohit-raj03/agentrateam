@@ -29,9 +29,11 @@ export const protect = async (req, res, next) => {
 
   try {
     const secret =
-      config?.ACCESS_TOKEN_SECRET ||
-      process.env.ACCESS_TOKEN_SECRET ||
-      "teamsync_access_secret_key";
+      config?.ACCESS_TOKEN_SECRET || process.env.ACCESS_TOKEN_SECRET;
+
+    if (!secret) {
+      throw new Error("JWT ACCESS_TOKEN_SECRET is not configured");
+    }
 
     const decoded = jwt.verify(token, secret);
     const userId = decoded.userId || decoded.id;

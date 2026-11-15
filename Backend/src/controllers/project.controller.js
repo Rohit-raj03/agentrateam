@@ -4,6 +4,7 @@ import UserModel from "../models/user.model.js";
 import TaskModel from "../models/task.model.js";
 import CommentModel from "../models/comment.model.js";
 import NotificationModel from "../models/notification.model.js";
+import { escapeRegex } from "../utils/regex.util.js";
 
 /**
  * Helper to compute task statistics for projects
@@ -97,16 +98,28 @@ export const createProject = async (req, res) => {
       },
     ];
 
-    if (Array.isArray(members)) {
+    if (Array.isArray(members) && members.length > 0) {
+      // PERF-01: Collect unique valid user IDs to eliminate N+1 query loop
+      const memberMap = new Map();
       for (const m of members) {
         const userId = typeof m === "string" ? m : m.id || m._id || m.user;
         if (
           userId &&
           mongoose.Types.ObjectId.isValid(userId) &&
-          userId.toString() !== req.user._id.toString()
+          userId.toString() !== req.user._id.toString() &&
+          !memberMap.has(userId.toString())
         ) {
-          const userDoc = await UserModel.findById(userId);
-          if (userDoc) {
+          memberMap.set(userId.toString(), m);
+        }
+      }
+
+      if (memberMap.size > 0) {
+        const uniqueIds = Array.from(memberMap.keys());
+        const existingUsers = await UserModel.find({ _id: { $in: uniqueIds } }).select("_id");
+        const existingUserSet = new Set(existingUsers.map((u) => u._id.toString()));
+
+        for (const [userIdStr, m] of memberMap.entries()) {
+          if (existingUserSet.has(userIdStr)) {
             const memberTags =
               Array.isArray(m.tags) && m.tags.length > 0
                 ? m.tags
@@ -124,7 +137,7 @@ export const createProject = async (req, res) => {
                 : ["Contributor"];
 
             initialMembers.push({
-              user: userDoc._id,
+              user: new mongoose.Types.ObjectId(userIdStr),
               role: m.role || "Member",
               projectRole: memberTags,
               tags: memberTags,
@@ -181,7 +194,7 @@ export const createProject = async (req, res) => {
  */
 export const getProjects = async (req, res) => {
   try {
-    const { search, status, category, priority, sort } = req.query;
+    const { search, status, category, priority, sort, page, limit } = req.query || {};
 
     const query = {};
 
@@ -197,23 +210,25 @@ export const getProjects = async (req, res) => {
 
     // Status filter
     if (status && status !== "ALL") {
-      const normalizedStatus = status.trim();
+      const normalizedStatus = escapeRegex(status.trim());
       query.status = { $regex: new RegExp(`^${normalizedStatus}$`, "i") };
     }
 
     // Category filter
     if (category && category !== "ALL") {
-      query.category = { $regex: new RegExp(category.trim(), "i") };
+      const normalizedCategory = escapeRegex(category.trim());
+      query.category = { $regex: new RegExp(normalizedCategory, "i") };
     }
 
     // Priority filter
     if (priority && priority !== "ALL") {
-      query.priority = { $regex: new RegExp(`^${priority.trim()}$`, "i") };
+      const normalizedPriority = escapeRegex(priority.trim());
+      query.priority = { $regex: new RegExp(`^${normalizedPriority}$`, "i") };
     }
 
     // Search filter
     if (search && search.trim()) {
-      const s = search.trim();
+      const s = escapeRegex(search.trim());
       query.$and = query.$and || [];
       query.$and.push({
         $or: [
@@ -230,11 +245,23 @@ export const getProjects = async (req, res) => {
     if (sort === "dueDate") sortOption = { dueDate: 1 };
     if (sort === "progress") sortOption = { progress: -1 };
 
-    const projects = await ProjectModel.find(query)
-      .populate("manager", "name email avatar username jobTitle")
-      .populate("owner", "name email avatar username jobTitle")
-      .populate("members.user", "name email avatar username jobTitle")
-      .sort(sortOption);
+    // PERF-03: Paginate list query with sensible boundaries
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum =
+      req.query.limit !== undefined || req.query.page !== undefined
+        ? Math.min(100, Math.max(1, parseInt(limit) || 20))
+        : 100;
+
+    const [total, projects] = await Promise.all([
+      ProjectModel.countDocuments(query),
+      ProjectModel.find(query)
+        .populate("manager", "name email avatar username jobTitle")
+        .populate("owner", "name email avatar username jobTitle")
+        .populate("members.user", "name email avatar username jobTitle")
+        .sort(sortOption)
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum),
+    ]);
 
     const enriched = await attachTaskStats(projects);
 
@@ -243,6 +270,12 @@ export const getProjects = async (req, res) => {
       count: enriched.length,
       projects: enriched,
       data: enriched,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
     });
   } catch (error) {
     console.error("getProjects error:", error.message);
@@ -917,6 +950,14 @@ export const getEligibleMembers = async (req, res) => {
       });
     }
 
+    // BUG-10: Verify caller is an authorized member or manager of this project
+    if (!project.isProjectMember(req.user._id, req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to view eligible members for this project",
+      });
+    }
+
     const existingMemberIds = (project.members || [])
       .map((m) => (m.user?._id || m.user)?.toString())
       .filter(Boolean);
@@ -927,7 +968,7 @@ export const getEligibleMembers = async (req, res) => {
     };
 
     if (search && search.trim()) {
-      const s = search.trim();
+      const s = escapeRegex(search.trim());
       query.$or = [
         { name: { $regex: s, $options: "i" } },
         { email: { $regex: s, $options: "i" } },

@@ -11,6 +11,7 @@ import {
   safeCleanupFile,
   MEDIA_FOLDERS,
 } from "../services/imagekit.service.js";
+import { escapeRegex } from "../utils/regex.util.js";
 
 /**
  * Helper to parse @mentions from text and return matched member IDs
@@ -44,7 +45,7 @@ const extractMentions = async (text, projectMemberUserIds = null) => {
     const userQuery = {
       $or: [
         { username: { $in: usernames } },
-        { name: { $in: usernames.map((u) => new RegExp(`^${u}$`, "i")) } },
+        { name: { $in: usernames.map((u) => new RegExp(`^${escapeRegex(u)}$`, "i")) } },
       ],
     };
     if (projectMemberUserIds && Array.isArray(projectMemberUserIds)) {
@@ -65,17 +66,34 @@ const extractMentions = async (text, projectMemberUserIds = null) => {
  */
 export const getTasks = async (req, res) => {
   try {
-    const projectId = req.params.projectId || req.query.projectId;
-    const { status, priority, search, assignee, dueDate } = req.query;
+    const projectId = req.params?.projectId || req.query?.projectId;
+    const { status, priority, search, assignee, dueDate, page, limit } = req.query || {};
 
     const query = {};
+    const andConditions = [];
 
     if (
       projectId === "individual" ||
       projectId === "none" ||
       req.query.isIndividual === "true"
     ) {
-      query.$or = [{ project: null }, { project: { $exists: false } }];
+      const individualBase = [{ project: null }, { project: { $exists: false } }];
+      if (req.user.role === "admin") {
+        andConditions.push({ $or: individualBase });
+      } else {
+        // SEC-07: Non-admin users only see individual tasks they created or are assigned to
+        andConditions.push({
+          $or: individualBase,
+          $and: [
+            {
+              $or: [
+                { creator: req.user._id },
+                { assignees: req.user._id },
+              ],
+            },
+          ],
+        });
+      }
     } else if (projectId) {
       if (!mongoose.Types.ObjectId.isValid(projectId)) {
         return res.status(400).json({
@@ -101,7 +119,7 @@ export const getTasks = async (req, res) => {
 
       query.project = projectId;
     } else {
-      // Find all projects accessible to the current user + include individual tasks (no project)
+      // Find all projects accessible to the current user + include own individual tasks
       if (req.user.role !== "admin") {
         const accessibleProjects = await ProjectModel.find({
           $or: [
@@ -113,23 +131,36 @@ export const getTasks = async (req, res) => {
         }).select("_id");
 
         const accessibleIds = accessibleProjects.map((p) => p._id);
-        query.$or = [
-          { project: { $in: accessibleIds } },
-          { project: null },
-          { project: { $exists: false } },
-        ];
+        // SEC-02 & SEC-07: Combine project access list and individual task ownership into access control clause
+        andConditions.push({
+          $or: [
+            { project: { $in: accessibleIds } },
+            {
+              $and: [
+                { $or: [{ project: null }, { project: { $exists: false } }] },
+                {
+                  $or: [
+                    { creator: req.user._id },
+                    { assignees: req.user._id },
+                  ],
+                },
+              ],
+            },
+          ],
+        });
       }
     }
 
     // Status filter
     if (status && status !== "ALL") {
-      const normalized = status.trim();
+      const normalized = escapeRegex(status.trim());
       query.status = { $regex: new RegExp(`^${normalized}$`, "i") };
     }
 
     // Priority filter
     if (priority && priority !== "ALL") {
-      query.priority = { $regex: new RegExp(`^${priority.trim()}$`, "i") };
+      const normalized = escapeRegex(priority.trim());
+      query.priority = { $regex: new RegExp(`^${normalized}$`, "i") };
     }
 
     // Assignee filter
@@ -139,29 +170,53 @@ export const getTasks = async (req, res) => {
       }
     }
 
-    // Search filter
+    // Search filter (SEC-02: Never overwrite access control conditions; combine via $and)
     if (search && search.trim()) {
-      const s = search.trim();
-      query.$or = [
-        { title: { $regex: s, $options: "i" } },
-        { description: { $regex: s, $options: "i" } },
-        { tags: { $regex: s, $options: "i" } },
-        { assignedTo: { $regex: s, $options: "i" } },
-      ];
+      const s = escapeRegex(search.trim());
+      andConditions.push({
+        $or: [
+          { title: { $regex: s, $options: "i" } },
+          { description: { $regex: s, $options: "i" } },
+          { tags: { $regex: s, $options: "i" } },
+          { assignedTo: { $regex: s, $options: "i" } },
+        ],
+      });
     }
 
-    const tasks = await TaskModel.find(query)
-      .populate("project", "name key color themeColor status category")
-      .populate("creator", "name email avatar username jobTitle")
-      .populate("assignees", "name email avatar username jobTitle role")
-      .populate("mentions", "name email avatar username")
-      .sort({ createdAt: -1 });
+    if (andConditions.length > 0) {
+      query.$and = andConditions;
+    }
+
+    // PERF-03: Paginate list query with sensible boundaries
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum =
+      req.query.limit !== undefined || req.query.page !== undefined
+        ? Math.min(100, Math.max(1, parseInt(limit) || 20))
+        : 100;
+
+    const [total, tasks] = await Promise.all([
+      TaskModel.countDocuments(query),
+      TaskModel.find(query)
+        .populate("project", "name key color themeColor status category")
+        .populate("creator", "name email avatar username jobTitle")
+        .populate("assignees", "name email avatar username jobTitle role")
+        .populate("mentions", "name email avatar username")
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum),
+    ]);
 
     return res.status(200).json({
       success: true,
       count: tasks.length,
       tasks,
       data: tasks,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
     });
   } catch (error) {
     console.error("getTasks error:", error.message);
@@ -201,13 +256,28 @@ export const getTaskById = async (req, res) => {
       });
     }
 
-    // Access check on task's project
+    // Access check (SEC-02, SEC-07): verify project membership or individual task ownership
     const project = task.project;
-    if (project && !project.isProjectMember(req.user._id, req.user.role)) {
-      return res.status(403).json({
-        success: false,
-        message: "You are not authorized to view this task",
-      });
+    if (project) {
+      if (!project.isProjectMember(req.user._id, req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to view this task",
+        });
+      }
+    } else if (req.user.role !== "admin") {
+      const isCreator =
+        task.creator?._id?.toString() === req.user._id.toString() ||
+        task.creator?.toString() === req.user._id.toString();
+      const isAssignee = (task.assignees || []).some(
+        (a) => (a._id || a)?.toString() === req.user._id.toString()
+      );
+      if (!isCreator && !isAssignee) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to view this individual task",
+        });
+      }
     }
 
     return res.status(200).json({
@@ -912,12 +982,49 @@ export const toggleSubtask = async (req, res) => {
   try {
     const { taskId, subtaskId } = req.params;
 
-    const task = await TaskModel.findById(taskId);
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid task ID format",
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(subtaskId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid subtask ID format",
+      });
+    }
+
+    const task = await TaskModel.findById(taskId).populate("project");
     if (!task) {
       return res.status(404).json({
         success: false,
         message: "Task not found",
       });
+    }
+
+    // BUG-09: Verify user has authorization to modify this task
+    if (task.project) {
+      if (!task.project.isProjectMember(req.user._id, req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to modify subtasks in this project",
+        });
+      }
+    } else if (req.user.role !== "admin") {
+      const isCreator =
+        task.creator?._id?.toString() === req.user._id.toString() ||
+        task.creator?.toString() === req.user._id.toString();
+      const isAssignee = (task.assignees || []).some(
+        (a) => (a._id || a)?.toString() === req.user._id.toString()
+      );
+      if (!isCreator && !isAssignee) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to modify subtasks on this individual task",
+        });
+      }
     }
 
     const sub = task.subtasks.id(subtaskId);
@@ -958,7 +1065,8 @@ export const toggleSubtask = async (req, res) => {
  */
 export const getTaskComments = async (req, res) => {
   try {
-    const { taskId } = req.params;
+    const { taskId } = req.params || {};
+    const { page, limit } = req.query || {};
 
     if (!mongoose.Types.ObjectId.isValid(taskId)) {
       return res.status(400).json({
@@ -967,7 +1075,7 @@ export const getTaskComments = async (req, res) => {
       });
     }
 
-    const task = await TaskModel.findById(taskId);
+    const task = await TaskModel.findById(taskId).populate("project");
     if (!task) {
       return res.status(404).json({
         success: false,
@@ -975,16 +1083,57 @@ export const getTaskComments = async (req, res) => {
       });
     }
 
-    const comments = await CommentModel.find({ task: taskId })
-      .populate("author", "name email avatar username jobTitle")
-      .populate("mentions", "name email avatar username")
-      .sort({ createdAt: 1 });
+    // Access check (SEC-07): verify project membership or individual task ownership
+    if (task.project) {
+      if (!task.project.isProjectMember(req.user._id, req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to view comments on this task",
+        });
+      }
+    } else if (req.user.role !== "admin") {
+      const isCreator =
+        task.creator?._id?.toString() === req.user._id.toString() ||
+        task.creator?.toString() === req.user._id.toString();
+      const isAssignee = (task.assignees || []).some(
+        (a) => (a._id || a)?.toString() === req.user._id.toString()
+      );
+      if (!isCreator && !isAssignee) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to view comments on this individual task",
+        });
+      }
+    }
+
+    // PERF-03: Paginate list query with sensible boundaries
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum =
+      req.query.limit !== undefined || req.query.page !== undefined
+        ? Math.min(100, Math.max(1, parseInt(limit) || 20))
+        : 100;
+
+    const [total, comments] = await Promise.all([
+      CommentModel.countDocuments({ task: taskId }),
+      CommentModel.find({ task: taskId })
+        .populate("author", "name email avatar username jobTitle")
+        .populate("mentions", "name email avatar username")
+        .sort({ createdAt: 1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum),
+    ]);
 
     return res.status(200).json({
       success: true,
       count: comments.length,
       comments,
       data: comments,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
     });
   } catch (error) {
     console.error("getTaskComments error:", error.message);
@@ -1137,6 +1286,13 @@ export const deleteTaskComment = async (req, res) => {
   try {
     const { taskId, commentId } = req.params;
 
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid task ID format",
+      });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(commentId)) {
       return res.status(400).json({
         success: false,
@@ -1152,19 +1308,37 @@ export const deleteTaskComment = async (req, res) => {
       });
     }
 
-    // Authorization: comment author, admin, or task creator
-    if (mongoose.Types.ObjectId.isValid(taskId)) {
-      const task = await TaskModel.findById(taskId);
-      const isAuthor = comment.author?.toString() === req.user._id.toString();
-      const isAdmin = req.user.role === "admin";
-      const isTaskCreator = task?.creator?.toString() === req.user._id.toString();
+    // Verify comment belongs to specified task
+    if (comment.task?.toString() !== taskId) {
+      return res.status(400).json({
+        success: false,
+        message: "Comment does not belong to the specified task",
+      });
+    }
 
-      if (!isAuthor && !isAdmin && !isTaskCreator) {
-        return res.status(403).json({
-          success: false,
-          message: "You are not authorized to delete this comment",
-        });
-      }
+    const task = await TaskModel.findById(taskId).populate("project");
+    if (!task) {
+      return res.status(404).json({
+        success: false,
+        message: "Task not found",
+      });
+    }
+
+    // SEC-03: Authorization check strictly enforced (author, admin, task creator, or project manager)
+    const isAuthor = comment.author?.toString() === req.user._id.toString();
+    const isAdmin = req.user.role === "admin";
+    const isTaskCreator = task.creator?.toString() === req.user._id.toString();
+    const isProjectManager = Boolean(
+      task.project &&
+        typeof task.project.canManageProject === "function" &&
+        task.project.canManageProject(req.user._id, req.user.role)
+    );
+
+    if (!isAuthor && !isAdmin && !isTaskCreator && !isProjectManager) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to delete this comment",
+      });
     }
 
     await CommentModel.findByIdAndDelete(commentId);
@@ -1199,11 +1373,27 @@ export const clearTaskComments = async (req, res) => {
       });
     }
 
-    const task = await TaskModel.findById(taskId);
+    const task = await TaskModel.findById(taskId).populate("project");
     if (!task) {
       return res.status(404).json({
         success: false,
         message: "Task not found",
+      });
+    }
+
+    // SEC-04: Enforce authorization - only admin, task creator, or project manager can clear discussion
+    const isAdmin = req.user.role === "admin";
+    const isTaskCreator = task.creator?.toString() === req.user._id.toString();
+    const isProjectManager = Boolean(
+      task.project &&
+        typeof task.project.canManageProject === "function" &&
+        task.project.canManageProject(req.user._id, req.user.role)
+    );
+
+    if (!isAdmin && !isTaskCreator && !isProjectManager) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to clear comments on this task",
       });
     }
 

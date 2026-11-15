@@ -1,6 +1,7 @@
 import { getImageKitClient } from "../config/imagekit.js";
 import config from "../config/config.js";
 import { deleteImage } from "../services/imagekit.service.js";
+import { checkFileDeletionAuthorization } from "../utils/fileAuth.util.js";
 
 /**
  * Delete a file directly from ImageKit using SDK or REST API
@@ -106,6 +107,15 @@ export const deleteImageKitFile = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "File ID parameter is required",
+      });
+    }
+
+    // SEC-06: Prevent IDOR - verify user has authorization to delete this file
+    const authCheck = await checkFileDeletionAuthorization(fileId, req.user);
+    if (!authCheck.authorized) {
+      return res.status(403).json({
+        success: false,
+        message: authCheck.reason || "You are not authorized to delete this file",
       });
     }
 

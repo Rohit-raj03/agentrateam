@@ -1,4 +1,6 @@
+import crypto from "node:crypto";
 import UserModel from "../models/user.model.js";
+import { escapeRegex } from "../utils/regex.util.js";
 
 /**
  * @desc    Get Admin Dashboard Telemetry & User Stats
@@ -7,14 +9,22 @@ import UserModel from "../models/user.model.js";
  */
 export const getAdminStats = async (req, res) => {
   try {
-    const totalUsers = await UserModel.countDocuments();
-    const activeUsers = await UserModel.countDocuments({ isActive: true });
-    const inactiveUsers = await UserModel.countDocuments({ isActive: false });
-    const totalAdmins = await UserModel.countDocuments({ role: "admin" });
-    const totalMembers = await UserModel.countDocuments({
-      role: { $in: ["user", "member"] },
-    });
-    const totalManagers = await UserModel.countDocuments({ role: "manager" });
+    // PERF-02: Run independent telemetry count queries concurrently in parallel
+    const [
+      totalUsers,
+      activeUsers,
+      inactiveUsers,
+      totalAdmins,
+      totalMembers,
+      totalManagers,
+    ] = await Promise.all([
+      UserModel.countDocuments(),
+      UserModel.countDocuments({ isActive: true }),
+      UserModel.countDocuments({ isActive: false }),
+      UserModel.countDocuments({ role: "admin" }),
+      UserModel.countDocuments({ role: { $in: ["user", "member"] } }),
+      UserModel.countDocuments({ role: "manager" }),
+    ]);
 
     res.status(200).json({
       success: true,
@@ -43,14 +53,15 @@ export const getAdminStats = async (req, res) => {
  */
 export const getAllAdminUsers = async (req, res) => {
   try {
-    const { search, role, status } = req.query;
+    const { search, role, status, page, limit } = req.query || {};
     const query = {};
 
-    if (search) {
+    if (search && search.trim()) {
+      const s = escapeRegex(search.trim());
       query.$or = [
-        { name: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { username: { $regex: search, $options: "i" } },
+        { name: { $regex: s, $options: "i" } },
+        { email: { $regex: s, $options: "i" } },
+        { username: { $regex: s, $options: "i" } },
       ];
     }
 
@@ -62,14 +73,32 @@ export const getAllAdminUsers = async (req, res) => {
       query.isActive = status === "active";
     }
 
-    const users = await UserModel.find(query)
-      .select("-password")
-      .sort({ createdAt: -1 });
+    // PERF-03: Paginate list query with sensible boundaries
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum =
+      req.query.limit !== undefined || req.query.page !== undefined
+        ? Math.min(100, Math.max(1, parseInt(limit) || 20))
+        : 100;
+
+    const [total, users] = await Promise.all([
+      UserModel.countDocuments(query),
+      UserModel.find(query)
+        .select("-password")
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum),
+    ]);
 
     res.status(200).json({
       success: true,
       count: users.length,
       users,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
     });
   } catch (error) {
     console.error("getAllAdminUsers error:", error.message);
@@ -103,7 +132,7 @@ export const updateUserRole = async (req, res) => {
     if (!validRoles.includes(normalizedRole)) {
       return res.status(400).json({
         success: false,
-        message: "Invalid role. Role must be 'admin' or 'user'",
+        message: "Invalid role. Role must be 'admin', 'user', 'manager', or 'member'",
       });
     }
 
@@ -264,11 +293,19 @@ export const createAdminUser = async (req, res) => {
       }
     }
 
+    // SEC-08: If password is not provided or too short, generate a secure random password
+    // Never fall back to predictable static strings like 'TeamSync@1234'
+    const isGeneratedPassword =
+      !password || typeof password !== "string" || password.trim().length < 6;
+    const finalPassword = isGeneratedPassword
+      ? `${crypto.randomBytes(12).toString("hex")}A1!`
+      : password.trim();
+
     const newUser = await UserModel.create({
       name: name.trim(),
       email: cleanEmail,
       username: username?.trim() || cleanEmail.split("@")[0],
-      password: password || "TeamSync@1234",
+      password: finalPassword,
       role: assignedRole,
       jobTitle: jobTitle?.trim() || (assignedRole === "admin" ? "Administrator" : "Team Member"),
       phone: phone || "",
@@ -288,6 +325,7 @@ export const createAdminUser = async (req, res) => {
         jobTitle: newUser.jobTitle,
         isActive: newUser.isActive,
         createdAt: newUser.createdAt,
+        ...(isGeneratedPassword && { temporaryPassword: finalPassword }),
       },
     });
   } catch (error) {

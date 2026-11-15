@@ -82,6 +82,162 @@ async function runTests() {
   );
   console.log("✔ toJSON strips sensitive credentials");
 
+  // 5. SEC-01: Public registration cannot self-escalate role
+  const { register } = await import("../src/services/auth.service.js");
+  const origFindOne = UserModel.findOne;
+  const origCreate = UserModel.create;
+
+  let capturedRole = null;
+  UserModel.findOne = async () => null; // Email not taken
+  UserModel.create = async (userData) => {
+    capturedRole = userData.role;
+    return {
+      _id: "fake_id_123",
+      role: userData.role,
+      name: userData.name,
+      email: userData.email,
+      save: async () => {},
+    };
+  };
+
+  try {
+    await register({
+      name: "Attacker Admin",
+      email: "attacker@example.com",
+      password: "password123",
+      role: "admin",
+    });
+
+    assert.strictEqual(
+      capturedRole,
+      "user",
+      "SEC-01: Public registration must ignore 'role: admin' and force 'user'"
+    );
+    console.log("✔ SEC-01: Public registration role escalation is blocked");
+  } finally {
+    UserModel.findOne = origFindOne;
+    UserModel.create = origCreate;
+  }
+
+  // 6. BUG-05: Logout clears refreshToken in DB even when called without protect middleware
+  const { logoutUser } = await import("../src/controllers/auth.controller.js");
+  const { generateRefreshToken } = await import("../src/utils/generateToken.js");
+
+  const sampleUserId = "507f1f77bcf86cd799439099";
+  const sampleToken = generateRefreshToken(sampleUserId);
+
+  let updatedUserId = null;
+  let updateFields = null;
+  const origFindByIdAndUpdate = UserModel.findByIdAndUpdate;
+
+  UserModel.findByIdAndUpdate = async (uid, fields) => {
+    updatedUserId = uid;
+    updateFields = fields;
+    return {};
+  };
+
+  try {
+    let clearedCookie = null;
+    const req = {
+      user: undefined, // Simulating unauthenticated / public request
+      cookies: { refreshToken: sampleToken },
+      headers: {},
+    };
+    const res = {
+      clearCookie: (name) => {
+        clearedCookie = name;
+      },
+      status: (code) => ({
+        json: (data) => ({ code, data }),
+      }),
+    };
+
+    await logoutUser(req, res);
+
+    assert.strictEqual(
+      updatedUserId?.toString(),
+      sampleUserId,
+      "BUG-05: User ID must be extracted from refreshToken cookie"
+    );
+    assert.deepStrictEqual(
+      updateFields,
+      { refreshToken: "" },
+      "BUG-05: refreshToken must be cleared in database"
+    );
+    assert.strictEqual(
+      clearedCookie,
+      "refreshToken",
+      "BUG-05: refreshToken cookie must be cleared on response"
+    );
+    console.log("✔ BUG-05: Logout properly invalidates refreshToken in database and clears cookie");
+  } finally {
+    UserModel.findByIdAndUpdate = origFindByIdAndUpdate;
+  }
+
+  // 7. SEC-05: generateAccessToken / generateRefreshToken throw when secrets are missing
+  const { generateAccessToken } = await import("../src/utils/generateToken.js");
+  const configModule = await import("../src/config/config.js");
+  const origAccessSecret = configModule.config.ACCESS_TOKEN_SECRET;
+  const origEnvAccessSecret = process.env.ACCESS_TOKEN_SECRET;
+
+  try {
+    delete configModule.config.ACCESS_TOKEN_SECRET;
+    delete process.env.ACCESS_TOKEN_SECRET;
+
+    assert.throws(
+      () => generateAccessToken({ _id: sampleUserId }),
+      /JWT ACCESS_TOKEN_SECRET is not configured/,
+      "SEC-05: generateAccessToken must throw if secret is missing"
+    );
+    console.log("✔ SEC-05: Hardcoded fallback JWT secrets successfully removed (fails fast)");
+  } finally {
+    configModule.config.ACCESS_TOKEN_SECRET = origAccessSecret;
+    process.env.ACCESS_TOKEN_SECRET = origEnvAccessSecret;
+  }
+
+  // 8. SEC-11: forgotPassword never leaks resetToken when in production environment
+  const { forgotPassword } = await import("../src/controllers/auth.controller.js");
+  const origNodeEnv = configModule.config.NODE_ENV;
+  const origFindOneUser = UserModel.findOne;
+
+  UserModel.findOne = async () => ({
+    _id: sampleUserId,
+    email: "user@example.com",
+    save: async () => {},
+  });
+
+  try {
+    configModule.config.NODE_ENV = "production";
+
+    let resData = null;
+    const req = { body: { email: "user@example.com" } };
+    const res = {
+      status: () => ({
+        json: (payload) => {
+          resData = payload;
+          return payload;
+        },
+      }),
+    };
+
+    await forgotPassword(req, res);
+    assert.strictEqual(resData.success, true);
+    assert.strictEqual(
+      resData.resetToken,
+      undefined,
+      "SEC-11: resetToken must NOT be present in production response"
+    );
+    assert.strictEqual(
+      resData.resetUrl,
+      undefined,
+      "SEC-11: resetUrl must NOT be present in production response"
+    );
+    console.log("✔ SEC-11: forgotPassword does not leak resetToken in production");
+  } finally {
+    configModule.config.NODE_ENV = origNodeEnv;
+    UserModel.findOne = origFindOneUser;
+  }
+
   console.log("\nALL AUTH UNIT TESTS PASSED SUCCESSFULLY! 🎉\n");
 }
 

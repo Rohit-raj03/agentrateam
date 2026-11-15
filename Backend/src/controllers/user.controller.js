@@ -1,4 +1,5 @@
 import UserModel from "../models/user.model.js";
+import { escapeRegex } from "../utils/regex.util.js";
 import {
   uploadImage,
   safeCleanupFile,
@@ -158,11 +159,11 @@ export const updateUserProfile = async (req, res) => {
  */
 export const getAllUsers = async (req, res) => {
   try {
-    const { search } = req.query;
+    const { search, page, limit } = req.query || {};
     const query = { isActive: true };
 
     if (search && search.trim()) {
-      const s = search.trim();
+      const s = escapeRegex(search.trim());
       query.$or = [
         { name: { $regex: s, $options: "i" } },
         { email: { $regex: s, $options: "i" } },
@@ -170,15 +171,33 @@ export const getAllUsers = async (req, res) => {
       ];
     }
 
-    const users = await UserModel.find(query)
-      .select("-password")
-      .sort({ createdAt: -1 });
+    // PERF-03: Paginate list query with sensible boundaries
+    const pageNum = Math.max(1, parseInt(page) || 1);
+    const limitNum =
+      req.query.limit !== undefined || req.query.page !== undefined
+        ? Math.min(100, Math.max(1, parseInt(limit) || 20))
+        : 100;
+
+    const [total, users] = await Promise.all([
+      UserModel.countDocuments(query),
+      UserModel.find(query)
+        .select("-password")
+        .sort({ createdAt: -1 })
+        .skip((pageNum - 1) * limitNum)
+        .limit(limitNum),
+    ]);
 
     res.status(200).json({
       success: true,
       count: users.length,
       users,
       data: users,
+      pagination: {
+        page: pageNum,
+        limit: limitNum,
+        total,
+        totalPages: Math.ceil(total / limitNum),
+      },
     });
   } catch (error) {
     console.error("getAllUsers error:", error.message);

@@ -50,3 +50,5 @@ TASK_PROGRESS.md
 .agents
 tests
 Frontend\tests
+audit-reports
+Frontend\tests

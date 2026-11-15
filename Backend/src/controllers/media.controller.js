@@ -8,6 +8,7 @@ import {
   safeCleanupFile,
   MEDIA_FOLDERS,
 } from "../services/imagekit.service.js";
+import { checkFileDeletionAuthorization } from "../utils/fileAuth.util.js";
 
 /**
  * Validates MongoDB ObjectId
@@ -517,6 +518,15 @@ export const genericDelete = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "File ID is required.",
+      });
+    }
+
+    // SEC-06: Verify caller is authorized to delete this file before deleting from ImageKit
+    const authCheck = await checkFileDeletionAuthorization(fileId, req.user);
+    if (!authCheck.authorized) {
+      return res.status(403).json({
+        success: false,
+        message: authCheck.reason || "You are not authorized to delete this file",
       });
     }
 

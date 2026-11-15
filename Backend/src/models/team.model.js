@@ -49,14 +49,32 @@ const teamSchema = new mongoose.Schema(
   }
 );
 
-// Helpful helper to check if a user is an authorized admin/owner of this team
+// Helpful helper to check if a user is an authorized admin/owner of this team (handles both unpopulated and populated documents)
 teamSchema.methods.canManageTeam = function (userId, userRole) {
   if (userRole === "admin") return true;
-  if (this.owner && this.owner.toString() === userId.toString()) return true;
-  const member = this.members.find(
-    (m) => m.user.toString() === userId.toString() && m.role === "admin"
-  );
+  if (!userId) return false;
+  const targetId = (userId._id || userId).toString();
+  const ownerId = (this.owner?._id || this.owner)?.toString();
+  if (ownerId && ownerId === targetId) return true;
+
+  const member = (this.members || []).find((m) => {
+    const memberId = (m.user?._id || m.user)?.toString();
+    return memberId === targetId && (m.role === "admin" || m.role === "lead");
+  });
   return Boolean(member);
+};
+
+// Helper to check if a user is a member or owner of this team
+teamSchema.methods.isTeamMember = function (userId, userRole) {
+  if (userRole === "admin") return true;
+  if (!userId) return false;
+  const targetId = (userId._id || userId).toString();
+  const ownerId = (this.owner?._id || this.owner)?.toString();
+  if (ownerId && ownerId === targetId) return true;
+
+  return (this.members || []).some(
+    (m) => (m.user?._id || m.user)?.toString() === targetId
+  );
 };
 
 const TeamModel = mongoose.model("Team", teamSchema);

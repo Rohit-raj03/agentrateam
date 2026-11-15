@@ -54,6 +54,19 @@ const userSchema = new mongoose.Schema(
       default: "Team Member",
     },
 
+    department: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    skills: [
+      {
+        type: String,
+        trim: true,
+      },
+    ],
+
     phone: {
       type: String,
       default: "",

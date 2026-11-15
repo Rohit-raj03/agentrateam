@@ -24,21 +24,16 @@ export const register = async ({ name, email, password, role, jobTitle }) => {
     throw error;
   }
 
-  let userRole = "user";
-  if (role) {
-    const normalizedRole = role.toLowerCase().trim();
-    const validRoles = ["admin", "user", "member", "manager"];
-    if (validRoles.includes(normalizedRole)) {
-      userRole = normalizedRole;
-    }
-  }
+  // Security (SEC-01): Public registration always assigns standard 'user' role
+  // Elevated roles (admin, manager) can only be assigned by administrators via admin routes
+  const userRole = "user";
 
   const user = await UserModel.create({
     name: name.trim(),
     email: cleanEmail,
     password,
     role: userRole,
-    jobTitle: jobTitle || (userRole === "admin" ? "Administrator" : "Team Member"),
+    jobTitle: jobTitle || "Team Member",
   });
 
   const { accessToken, refreshToken } = generateAccessAndRefreshTokens(

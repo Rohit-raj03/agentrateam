@@ -15,10 +15,10 @@ export const generateAccessToken = (user, role = "user") => {
   const userRole = typeof user === "object" && user?.role ? user.role : role;
   const userEmail = typeof user === "object" && user?.email ? user.email : undefined;
 
-  const secret =
-    config?.ACCESS_TOKEN_SECRET ||
-    process.env.ACCESS_TOKEN_SECRET ||
-    "teamsync_access_secret_key";
+  const secret = config?.ACCESS_TOKEN_SECRET || process.env.ACCESS_TOKEN_SECRET;
+  if (!secret) {
+    throw new Error("JWT ACCESS_TOKEN_SECRET is not configured");
+  }
 
   const payload = {
     userId,
@@ -45,10 +45,10 @@ export const generateRefreshToken = (user, role = "user") => {
       : user?.toString?.() || user;
   const userRole = typeof user === "object" && user?.role ? user.role : role;
 
-  const secret =
-    config?.REFRESH_TOKEN_SECRET ||
-    process.env.REFRESH_TOKEN_SECRET ||
-    "teamsync_refresh_secret_key";
+  const secret = config?.REFRESH_TOKEN_SECRET || process.env.REFRESH_TOKEN_SECRET;
+  if (!secret) {
+    throw new Error("JWT REFRESH_TOKEN_SECRET is not configured");
+  }
 
   return jwt.sign(
     {
@@ -105,10 +105,10 @@ export const getRefreshTokenCookieOptions = () => {
  * Verify Access Token
  */
 export const verifyAccessToken = (token) => {
-  const secret =
-    config?.ACCESS_TOKEN_SECRET ||
-    process.env.ACCESS_TOKEN_SECRET ||
-    "teamsync_access_secret_key";
+  const secret = config?.ACCESS_TOKEN_SECRET || process.env.ACCESS_TOKEN_SECRET;
+  if (!secret) {
+    throw new Error("JWT ACCESS_TOKEN_SECRET is not configured");
+  }
   return jwt.verify(token, secret);
 };
 
@@ -116,10 +116,10 @@ export const verifyAccessToken = (token) => {
  * Verify Refresh Token
  */
 export const verifyRefreshToken = (token) => {
-  const secret =
-    config?.REFRESH_TOKEN_SECRET ||
-    process.env.REFRESH_TOKEN_SECRET ||
-    "teamsync_refresh_secret_key";
+  const secret = config?.REFRESH_TOKEN_SECRET || process.env.REFRESH_TOKEN_SECRET;
+  if (!secret) {
+    throw new Error("JWT REFRESH_TOKEN_SECRET is not configured");
+  }
   return jwt.verify(token, secret);
 };
 

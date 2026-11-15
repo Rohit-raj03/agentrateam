@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import jwt from "jsonwebtoken";
 import UserModel from "../models/user.model.js";
 import config from "../config/config.js";
 import { getRefreshTokenCookieOptions } from "../utils/generateToken.js";
@@ -143,15 +144,54 @@ export const refreshAccessToken = async (req, res) => {
  */
 export const logoutUser = async (req, res) => {
   try {
-    const userId = req.user?._id;
-    await authService.logout(userId);
+    let userId = req.user?._id;
 
+    // 1. If req.user is absent, attempt resolving userId from Authorization header
+    if (!userId && req.headers?.authorization?.startsWith("Bearer ")) {
+      try {
+        const token = req.headers.authorization.split(" ")[1];
+        const secret = config.ACCESS_TOKEN_SECRET || process.env.ACCESS_TOKEN_SECRET;
+        if (secret) {
+          const decoded = jwt.verify(token, secret);
+          userId = decoded.userId || decoded.id;
+        }
+      } catch (err) {
+        // Access token might be expired; proceed to check refresh token
+      }
+    }
+
+    // 2. Fall back to resolving userId from refresh token cookie or request body
+    const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
+    if (!userId && refreshToken) {
+      try {
+        const secret = config.REFRESH_TOKEN_SECRET || process.env.REFRESH_TOKEN_SECRET;
+        if (secret) {
+          const decoded = jwt.verify(refreshToken, secret);
+          userId = decoded.userId || decoded.id;
+        }
+      } catch (err) {
+        // Refresh token may be expired/malformed
+      }
+    }
+
+    // 3. Invalidate refresh token in MongoDB
+    if (userId) {
+      await authService.logout(userId);
+    } else if (refreshToken) {
+      await UserModel.findOneAndUpdate(
+        { refreshToken },
+        { refreshToken: "" }
+      );
+    }
+
+    // 4. Clear client-side cookie
     res.clearCookie("refreshToken", getRefreshTokenCookieOptions());
     return res.status(200).json({
       success: true,
       message: "Logged out successfully",
     });
   } catch (error) {
+    console.error("logoutUser error:", error.message);
     return res.status(500).json({
       success: false,
       message: "Server error during logout",
@@ -231,10 +271,14 @@ export const forgotPassword = async (req, res) => {
     const clientUrl = config.CLIENT_URL || "http://localhost:5173";
     const resetUrl = `${clientUrl.replace(/\/$/, "")}/reset-password?token=${resetToken}`;
 
+    // SEC-11: Never leak reset token unless explicitly in local development/test mode
+    const isDevelopmentOrTest =
+      config.NODE_ENV === "development" || config.NODE_ENV === "test";
+
     return res.status(200).json({
       success: true,
       message: RESET_SUCCESS_MESSAGE,
-      ...(config.NODE_ENV !== "production" && { resetUrl, resetToken }),
+      ...(isDevelopmentOrTest && { resetUrl, resetToken }),
     });
   } catch (error) {
     return res.status(500).json({

@@ -1,12 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import {
-  AlertCircle,
-  Check,
-  Tag,
-  ChevronDown,
-  Loader2,
-  X,
-} from "lucide-react";
+import { AlertCircle, Check, Tag, ChevronDown, Loader2, X } from "lucide-react";
 import { ProjectMemberTagSelector } from "./ProjectMemberTagSelector.jsx";
 import { formatDateForInput } from "../../../shared/utils/formatDate.js";
 
@@ -65,14 +58,18 @@ const resolveInitialProjectData = (init = {}, isEditMode = false) => {
             Array.isArray(m?.tags) && m.tags.length > 0
               ? m.tags
               : Array.isArray(m?.projectRoles) && m.projectRoles.length > 0
-              ? m.projectRoles
-              : Array.isArray(m?.projectRole) && m.projectRole.length > 0
-              ? m.projectRole
-              : typeof m?.projectRole === "string" && m.projectRole.includes(",")
-              ? m.projectRole.split(",").map((s) => s.trim()).filter(Boolean)
-              : m?.projectRole
-              ? [m.projectRole]
-              : ["Contributor"];
+                ? m.projectRoles
+                : Array.isArray(m?.projectRole) && m.projectRole.length > 0
+                  ? m.projectRole
+                  : typeof m?.projectRole === "string" &&
+                      m.projectRole.includes(",")
+                    ? m.projectRole
+                        .split(",")
+                        .map((s) => s.trim())
+                        .filter(Boolean)
+                    : m?.projectRole
+                      ? [m.projectRole]
+                      : ["Contributor"];
 
           if (m?.user && typeof m.user === "object") {
             const uId = m.user._id || m.user.id;
@@ -115,12 +112,12 @@ export const ProjectForm = ({
     mode === "edit" || Boolean(initialData?.id || initialData?._id);
 
   const [formData, setFormData] = useState(() =>
-    resolveInitialProjectData(initialData, isEdit)
+    resolveInitialProjectData(initialData, isEdit),
   );
   const [isCustomCategory, setIsCustomCategory] = useState(
     () =>
       Boolean(initialData?.category) &&
-      !PROJECT_CATEGORIES.includes(initialData.category)
+      !PROJECT_CATEGORIES.includes(initialData.category),
   );
   const [internalSubmitting, setInternalSubmitting] = useState(false);
   const submitting = isSubmitting || internalSubmitting;
@@ -150,7 +147,7 @@ export const ProjectForm = ({
       setFormData(resolved);
       setIsCustomCategory(
         Boolean(resolved.category) &&
-          !PROJECT_CATEGORIES.includes(resolved.category)
+          !PROJECT_CATEGORIES.includes(resolved.category),
       );
     }
   }, [initialData, isEdit]);
@@ -216,7 +213,7 @@ export const ProjectForm = ({
         <div className="space-y-1">
           <label
             htmlFor="project-name-input"
-            className="block text-xs font-bold uppercase tracking-wider text-slate-700"
+            className="block text-xs font-light uppercase tracking-wider text-slate-700"
           >
             Project Name <span className="text-rose-500">*</span>
           </label>
@@ -246,7 +243,11 @@ export const ProjectForm = ({
           <div className="space-y-1">
             <div className="flex items-center justify-between">
               <label
-                htmlFor={isCustomCategory ? "project-category-custom" : "project-category-select"}
+                htmlFor={
+                  isCustomCategory
+                    ? "project-category-custom"
+                    : "project-category-select"
+                }
                 className="block text-xs font-bold uppercase tracking-wider text-slate-700"
               >
                 Category
