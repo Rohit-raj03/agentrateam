@@ -43,3 +43,36 @@
     @apply font-sans text-slate-900 bg-surface-page antialiased;
   }
 }
+
+/* Global Custom Scrollbar */
+* {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: #cbd5e1 transparent; /* Firefox normal */
+}
+
+*:hover {
+  scrollbar-color: #4361ee transparent; /* Firefox hover */
+}
+
+*::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  border-radius: 9999px;
+  transition: background-color 0.15s ease-in-out;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #4361ee !important; /* Brand primary color on hover */
+}
+
+*::-webkit-scrollbar-thumb:active {
+  background-color: #3451de !important; /* Darker primary when dragging */
+}
