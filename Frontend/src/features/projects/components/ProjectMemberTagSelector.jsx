@@ -4,6 +4,10 @@ import { Search, X, Check, Plus, ChevronDown, Trash2, Tag } from "lucide-react";
 import { useTeam } from "../../team/hooks/useTeam.js";
 import { Avatar } from "../../../shared/components/ui/Avatar.jsx";
 import {
+  MemberRoleChip,
+  getRoleTagConfig,
+} from "./MemberRoleChip.jsx";
+import {
   ASSIGNED_TAGS,
   getAssignedTagStyle,
 } from "../../../shared/data/assignedTags.js";
@@ -178,6 +182,8 @@ export const ProjectMemberTagSelector = ({
         return ASSIGNED_TAGS.PROJECT_LEAD || "Project Lead";
       if (title.includes("devops") || title.includes("cloud"))
         return ASSIGNED_TAGS.DEVOPS || "DevOps";
+      if (title.includes("ai") || title.includes("ml"))
+        return ASSIGNED_TAGS.AI_ML || "AI/ML";
       return ASSIGNED_TAGS.CONTRIBUTOR || "Contributor";
     })();
 
@@ -443,32 +449,11 @@ export const ProjectMemberTagSelector = ({
                   <div className="flex flex-wrap items-center gap-1 flex-1 min-w-0 pr-1">
                     {tags.length > 0 ? (
                       tags.map((tag) => (
-                        <span
+                        <MemberRoleChip
                           key={tag}
-                          style={
-                            themeColor && themeColor !== "#4361EE"
-                              ? {
-                                  backgroundColor: `${themeColor}15`,
-                                  color: themeColor,
-                                  borderColor: `${themeColor}35`,
-                                }
-                              : undefined
-                          }
-                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-semibold border shadow-2xs shrink-0 transition-all ${getAssignedTagStyle(tag)}`}
-                        >
-                          <span className="truncate max-w-22.5 sm:max-w-30">
-                            {tag}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveTag(mId, tag)}
-                            className="opacity-70 hover:opacity-100 rounded p-0.5 transition-opacity cursor-pointer"
-                            title={`Remove ${tag} role`}
-                            aria-label={`Remove ${tag} role`}
-                          >
-                            <X size={9} strokeWidth={2.5} />
-                          </button>
-                        </span>
+                          tag={tag}
+                          onRemove={() => handleRemoveTag(mId, tag)}
+                        />
                       ))
                     ) : (
                       <span className="text-[10.5px] text-slate-400 italic">
@@ -609,15 +594,29 @@ export const ProjectMemberTagSelector = ({
                     }}
                     className="flex items-center justify-between px-2 py-1.5 rounded-lg hover:bg-slate-50 cursor-pointer transition-colors text-xs select-none"
                   >
-                    <span
-                      className={`text-[11px] ${
-                        isChecked
-                          ? "text-primary font-bold"
-                          : "text-slate-700 font-medium"
-                      }`}
-                    >
-                      {role}
-                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0 pr-2">
+                      {(() => {
+                        const { Icon: RoleIcon, color: iconColor } =
+                          getRoleTagConfig(role);
+                        return (
+                          <RoleIcon
+                            size={12}
+                            strokeWidth={2.2}
+                            style={{ color: iconColor, flexShrink: 0 }}
+                            className="shrink-0"
+                          />
+                        );
+                      })()}
+                      <span
+                        className={`text-[11px] truncate ${
+                          isChecked
+                            ? "text-primary font-bold"
+                            : "text-slate-700 font-medium"
+                        }`}
+                      >
+                        {role}
+                      </span>
+                    </div>
                     <div
                       className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all ${
                         isChecked

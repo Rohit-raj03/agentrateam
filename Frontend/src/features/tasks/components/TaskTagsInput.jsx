@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from "react";
 import { Tag, Plus, X, Hash } from "lucide-react";
+import { getRoleTagConfig } from "../../projects/components/MemberRoleChip.jsx";
 import {
   deriveProjectColorTokens,
   DEFAULT_PROJECT_COLOR,
@@ -102,29 +103,37 @@ export const TaskTagsInput = ({
             borderColor: tokens.border,
           }}
         >
-          {tags.map((tag) => (
-            <span
-              key={tag}
-              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border shadow-2xs transition-all hover:brightness-95"
-              style={{
-                backgroundColor: tokens.bgLight,
-                color: tokens.badgeText,
-                borderColor: tokens.border,
-              }}
-            >
-              <Hash size={11} style={{ color: tokens.primary }} />
-              <span>{tag}</span>
-              <button
-                type="button"
-                onClick={() => handleRemoveTag(tag)}
-                className="w-3.5 h-3.5 rounded-full flex items-center justify-center transition-colors ml-0.5 cursor-pointer hover:bg-black/10"
-                style={{ color: tokens.primary }}
-                aria-label={`Remove tag ${tag}`}
+          {tags.map((tag) => {
+            const { Icon: RoleIcon, color: iconColor } = getRoleTagConfig(tag);
+            return (
+              <span
+                key={tag}
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold border shadow-2xs transition-all hover:brightness-95"
+                style={{
+                  backgroundColor: "rgba(67, 97, 238, 0.12)",
+                  color: "rgb(67, 97, 238)",
+                  borderColor: "rgba(67, 97, 238, 0.35)",
+                }}
               >
-                <X size={11} />
-              </button>
-            </span>
-          ))}
+                <RoleIcon
+                  size={12}
+                  strokeWidth={2.2}
+                  style={{ color: iconColor, flexShrink: 0 }}
+                  className="shrink-0"
+                />
+                <span>{tag}</span>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveTag(tag)}
+                  className="w-3.5 h-3.5 rounded-full flex items-center justify-center transition-colors ml-0.5 cursor-pointer hover:bg-black/10"
+                  style={{ color: "rgb(67, 97, 238)" }}
+                  aria-label={`Remove tag ${tag}`}
+                >
+                  <X size={11} />
+                </button>
+              </span>
+            );
+          })}
         </div>
       )}
 
