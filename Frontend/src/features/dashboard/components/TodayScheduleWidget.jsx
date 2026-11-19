@@ -2,6 +2,7 @@ import React from "react";
 import { Calendar, Clock, CheckCircle2, FolderKanban } from "lucide-react";
 import { useTasks } from "../../tasks/hooks/useTasks.js";
 import { formatDate } from "../../../shared/utils/formatDate.js";
+import { Avatar } from "../../../shared/components/ui/Avatar.jsx";
 
 /**
  * Feature Component: TodayScheduleWidget
@@ -57,17 +58,13 @@ export const TodayScheduleWidget = () => {
             <div className="flex items-center -space-x-2">
               {Array.isArray(upcomingTask.assignees) && upcomingTask.assignees.length > 0 ? (
                 upcomingTask.assignees.slice(0, 3).map((a, i) => (
-                  <img
+                  <Avatar
                     key={a.id || a._id || a.email || `assignee-${a.name || i}`}
-                    src={
-                      a.avatar ||
-                      `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
-                        a.name || "User"
-                      )}`
-                    }
-                    alt={a.name}
-                    title={a.name}
-                    className="w-8 h-8 rounded-full border-2 border-primary object-cover"
+                    src={a.avatar}
+                    name={a.name}
+                    email={a.email}
+                    size="sm"
+                    className="w-8 h-8 border-2 border-primary"
                   />
                 ))
               ) : (

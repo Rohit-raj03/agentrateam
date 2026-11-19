@@ -11,6 +11,7 @@ import { MentionTextarea } from "./MentionTextarea.jsx";
 import { MentionRenderer } from "./MentionRenderer.jsx";
 import { taskService } from "../services/task.service.js";
 import { formatDate } from "../../../shared/utils/formatDate.js";
+import { Avatar } from "../../../shared/components/ui/Avatar.jsx";
 
 /**
  * Feature Component: TaskComments
@@ -182,13 +183,12 @@ export const TaskComments = ({ taskId, projectMembers = [] }) => {
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <img
-                          src={
-                            author.avatar ||
-                            `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(authorName)}`
-                          }
-                          alt={authorName}
-                          className="w-6 h-6 rounded-full object-cover ring-1 ring-slate-200"
+                        <Avatar
+                          src={author.avatar}
+                          name={authorName}
+                          email={author.email}
+                          size="xs"
+                          className="w-6 h-6 ring-1 ring-slate-200"
                         />
                         <span className="text-xs font-bold text-slate-800">
                           {authorName}

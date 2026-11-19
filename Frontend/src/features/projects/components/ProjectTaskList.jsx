@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Badge } from "../../../shared/components/ui/Badge.jsx";
 import { EmptyState } from "../../../shared/components/ui/EmptyState.jsx";
+import { Avatar } from "../../../shared/components/ui/Avatar.jsx";
 import { formatDate } from "../../../shared/utils/formatDate.js";
 import {
   getPriorityBadgeVariant,
@@ -131,15 +132,13 @@ export const ProjectTaskList = ({
                 {task.assignees && task.assignees.length > 0 ? (
                   <div className="flex -space-x-1.5 overflow-hidden">
                     {task.assignees.slice(0, 3).map((u) => (
-                      <img
-                        key={u.id}
+                      <Avatar
+                        key={u.id || u._id}
                         src={u.avatar}
-                        alt={u.name}
-                        title={u.name}
-                        className="inline-block h-6 w-6 rounded-full ring-2 ring-white object-cover"
-                        onError={(e) => {
-                          e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(u.name)}`;
-                        }}
+                        name={u.name}
+                        email={u.email}
+                        size="xs"
+                        className="inline-block h-6 w-6 ring-2 ring-white"
                       />
                     ))}
                   </div>

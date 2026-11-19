@@ -1,20 +1,11 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import {
-  FolderKanban,
-  Plus,
-  Search,
-
-
-
-
-  Crown,
-  ArrowUpRight,
-} from "lucide-react";
+import { FolderKanban, Plus, Search, Crown, ArrowUpRight } from "lucide-react";
 import { useProjects } from "../../projects/hooks/useProjects.js";
 import { CreateProjectModal } from "../../projects/components/CreateProjectModal.jsx";
 import { Badge } from "../../../shared/components/ui/Badge.jsx";
 import { ROUTES } from "../../../shared/constants/routes.js";
+import { Avatar } from "../../../shared/components/ui/Avatar.jsx";
 
 const STATUS_VARIANTS = {
   ACTIVE: "success",
@@ -43,9 +34,13 @@ export const DashboardProjectsWidget = () => {
     let list = allProjects || [];
 
     if (filter === "ACTIVE") {
-      list = list.filter((p) => p.status === "ACTIVE" || p.status === "IN_PROGRESS");
+      list = list.filter(
+        (p) => p.status === "ACTIVE" || p.status === "IN_PROGRESS",
+      );
     } else if (filter === "COMPLETED") {
-      list = list.filter((p) => p.status === "COMPLETED" || p.status === "Done");
+      list = list.filter(
+        (p) => p.status === "COMPLETED" || p.status === "Done",
+      );
     }
 
     if (search.trim()) {
@@ -54,7 +49,7 @@ export const DashboardProjectsWidget = () => {
         (p) =>
           (p.name || "").toLowerCase().includes(q) ||
           (p.category || "").toLowerCase().includes(q) ||
-          (p.description || "").toLowerCase().includes(q)
+          (p.description || "").toLowerCase().includes(q),
       );
     }
 
@@ -84,7 +79,8 @@ export const DashboardProjectsWidget = () => {
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
-              Track active projects, task completion progress, and allocated team members.
+              Track active projects, task completion progress, and allocated
+              team members.
             </p>
           </div>
         </div>
@@ -186,7 +182,9 @@ export const DashboardProjectsWidget = () => {
                   </div>
 
                   <div className="shrink-0 flex items-center gap-1.5">
-                    <Badge variant={STATUS_VARIANTS[project.status] || "default"}>
+                    <Badge
+                      variant={STATUS_VARIANTS[project.status] || "default"}
+                    >
                       {project.status?.replace("_", " ")}
                     </Badge>
                   </div>
@@ -254,28 +252,40 @@ export const DashboardProjectsWidget = () => {
                   {/* Member avatars */}
                   <div className="flex items-center gap-1 shrink-0">
                     {members.length > 0 ? (
-                      <div className="flex -space-x-1.5 overflow-hidden">
-                        {members.slice(0, 3).map((m) => (
-                          <img
-                            key={m.id || m._id}
-                            src={m.avatar}
-                            alt={m.name}
-                            title={`${m.name} (${m.role || "Member"})`}
-                            className="w-5 h-5 rounded-full ring-1 ring-white object-cover"
-                            onError={(e) => {
-                              e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(
-                                m.name
-                              )}`;
-                            }}
-                          />
-                        ))}
+                      <div className="flex items-center -space-x-1.5">
+                        {members.slice(0, 3).map((m, index) => {
+                          const memberUser =
+                            m?.user && typeof m.user === "object" ? m.user : {};
+                          const name = m?.name || memberUser.name || "";
+                          const avatar = m?.avatar || memberUser.avatar || null;
+                          const email = m?.email || memberUser.email || "";
+                          const key =
+                            m?.id ||
+                            m?._id ||
+                            memberUser.id ||
+                            memberUser._id ||
+                            `dpm-${index}`;
+
+                          return (
+                            <Avatar
+                              key={key}
+                              src={avatar}
+                              name={name}
+                              email={email}
+                              size="xxs"
+                              className="w-5 h-5 ring-1 ring-white"
+                            />
+                          );
+                        })}
+                        {members.length > 3 && (
+                          <span className="flex items-center justify-center w-5 h-5 rounded-full bg-slate-100 text-[9px] font-bold text-slate-600 ring-1 ring-white shrink-0">
+                            +{members.length - 3}
+                          </span>
+                        )}
                       </div>
                     ) : (
-                      <span className="text-[10px] text-slate-400">0 members</span>
-                    )}
-                    {members.length > 3 && (
-                      <span className="text-[9px] font-bold text-slate-400 ml-0.5">
-                        +{members.length - 3}
+                      <span className="text-[10px] text-slate-400">
+                        0 members
                       </span>
                     )}
                   </div>

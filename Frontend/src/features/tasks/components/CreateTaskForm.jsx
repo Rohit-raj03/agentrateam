@@ -30,6 +30,7 @@ import { useProjects } from "../../projects/hooks/useProjects.js";
 import { useTeam } from "../../team/hooks/useTeam.js";
 import { taskService } from "../services/task.service.js";
 import { formatDateForInput } from "../../../shared/utils/formatDate.js";
+import { Avatar } from "../../../shared/components/ui/Avatar.jsx";
 
 const ESTIMATION_PRESETS = ["2h", "4h", "1d", "2d", "3d", "1w"];
 
@@ -475,19 +476,31 @@ export const CreateTaskForm = ({
                       <span className="font-semibold text-slate-400">
                         Tagged in project:
                       </span>
-                      <div className="flex -space-x-1.5 overflow-hidden">
-                        {currentProj.members.slice(0, 4).map((m) => (
-                          <img
-                            key={m.id || m._id}
-                            src={m.avatar}
-                            alt={m.name}
-                            title={`${m.name} (${m.projectRole || m.role || "Member"})`}
-                            className="w-5 h-5 rounded-full ring-1 ring-white object-cover"
-                            onError={(e) => {
-                              e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(m.name)}`;
-                            }}
-                          />
-                        ))}
+                      <div className="flex items-center -space-x-1.5">
+                        {currentProj.members.slice(0, 4).map((m, index) => {
+                          const memberUser =
+                            m?.user && typeof m.user === "object" ? m.user : {};
+                          const name = m?.name || memberUser.name || "";
+                          const avatar = m?.avatar || memberUser.avatar || null;
+                          const email = m?.email || memberUser.email || "";
+                          const key =
+                            m?.id ||
+                            m?._id ||
+                            memberUser.id ||
+                            memberUser._id ||
+                            `cpm-${index}`;
+
+                          return (
+                            <Avatar
+                              key={key}
+                              src={avatar}
+                              name={name}
+                              email={email}
+                              size="xxs"
+                              className="w-5 h-5 ring-1 ring-white"
+                            />
+                          );
+                        })}
                       </div>
                       <span className="text-[10px] text-slate-400 font-medium">
                         ({currentProj.members.length} contributors)

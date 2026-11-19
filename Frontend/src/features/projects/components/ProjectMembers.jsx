@@ -315,6 +315,7 @@ export const ProjectMembers = ({
                       <Avatar
                         src={user.avatar}
                         name={user.name}
+                        email={user.email}
                         size="sm"
                         className="ring-1 ring-slate-100 shrink-0"
                       />
@@ -452,6 +453,7 @@ export const ProjectMembers = ({
                       <Avatar
                         src={member.avatar}
                         name={member.name}
+                        email={member.email}
                         size="md"
                         className="ring-2 ring-slate-100"
                       />

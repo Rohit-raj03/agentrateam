@@ -10,6 +10,7 @@ import {
   Plus,
 } from "lucide-react";
 import { useTeam } from "../../team/hooks/useTeam.js";
+import { Avatar } from "../../../shared/components/ui/Avatar.jsx";
 
 /**
  * Feature Component: TaskAssigneeSelector
@@ -135,13 +136,12 @@ export const TaskAssigneeSelector = ({
               key={user.id}
               className="inline-flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-full bg-white border border-slate-200/80 shadow-xs text-xs font-medium text-slate-800 animate-in fade-in zoom-in-95 duration-150"
             >
-              <img
+              <Avatar
                 src={user.avatar}
-                alt={user.name}
-                className="w-5 h-5 rounded-full object-cover ring-1 ring-slate-100"
-                onError={(e) => {
-                  e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(user.name)}`;
-                }}
+                name={user.name}
+                email={user.email}
+                size="xxs"
+                className="w-5 h-5 ring-1 ring-slate-100 shrink-0"
               />
               <span className="text-xs font-semibold text-slate-700">
                 {user.name}
@@ -213,13 +213,12 @@ export const TaskAssigneeSelector = ({
 
                     {/* Avatar */}
                     <div className="relative shrink-0">
-                      <img
+                      <Avatar
                         src={member.avatar}
-                        alt={member.name}
-                        className="w-9 h-9 rounded-full object-cover ring-2 ring-slate-100"
-                        onError={(e) => {
-                          e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(member.name)}`;
-                        }}
+                        name={member.name}
+                        email={member.email}
+                        size="md"
+                        className="w-9 h-9 ring-2 ring-slate-100"
                       />
                       {member.status === "online" && (
                         <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 rounded-full ring-2 ring-white" />

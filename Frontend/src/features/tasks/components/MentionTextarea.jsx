@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { AtSign } from "lucide-react";
+import { Avatar } from "../../../shared/components/ui/Avatar.jsx";
 
 /**
  * Feature Component: MentionTextarea
@@ -186,13 +187,12 @@ export const MentionTextarea = ({
                         : "hover:bg-slate-50 text-slate-700"
                     }`}
                   >
-                    <img
-                      src={
-                        member.avatar ||
-                        `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(memberName)}`
-                      }
-                      alt={memberName}
-                      className="w-6 h-6 rounded-full object-cover ring-1 ring-slate-200 shrink-0"
+                    <Avatar
+                      src={member.avatar}
+                      name={memberName}
+                      email={member.email}
+                      size="xs"
+                      className="w-6 h-6 ring-1 ring-slate-200 shrink-0"
                     />
                     <div className="min-w-0 flex-1">
                       <p className="text-xs font-bold truncate">{memberName}</p>

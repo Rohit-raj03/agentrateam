@@ -89,7 +89,8 @@ export const Navbar = ({ onToggleSidebar }) => {
           >
             <Avatar
               src={user?.avatar}
-              name={user?.name || "User"}
+              name={user?.name}
+              email={user?.email}
               size="sm"
               className="ring-2 ring-slate-100"
             />

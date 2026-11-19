@@ -122,20 +122,33 @@ export const ProjectCard = ({ project, onClick }) => {
         {/* Tagged Members Avatar Stack */}
         <div className="flex items-center gap-2">
           {members.length > 0 ? (
-            <div className="flex items-center">
-              <div className="flex -space-x-2 overflow-hidden">
-                {members.slice(0, 4).map((m) => (
+            <div className="flex items-center -space-x-1.5">
+              {members.slice(0, 4).map((m, index) => {
+                const memberUser =
+                  m?.user && typeof m.user === "object" ? m.user : {};
+                const name = m?.name || memberUser.name || "";
+                const avatar = m?.avatar || memberUser.avatar || null;
+                const email = m?.email || memberUser.email || "";
+                const key =
+                  m?.id ||
+                  m?._id ||
+                  memberUser.id ||
+                  memberUser._id ||
+                  `pm-${index}`;
+
+                return (
                   <Avatar
-                    key={m.id || m._id}
-                    src={m.avatar}
-                    name={m.name}
+                    key={key}
+                    src={avatar}
+                    name={name}
+                    email={email}
                     size="xs"
-                    className="inline-block ring-2 ring-white"
+                    className="ring-2 ring-white"
                   />
-                ))}
-              </div>
+                );
+              })}
               {members.length > 4 && (
-                <span className="ml-1 text-[11px] font-bold text-slate-400">
+                <span className="flex items-center justify-center w-6 h-6 rounded-full bg-slate-100 text-[10px] font-bold text-slate-600 ring-2 ring-white shrink-0">
                   +{members.length - 4}
                 </span>
               )}

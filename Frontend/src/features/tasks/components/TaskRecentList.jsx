@@ -141,7 +141,8 @@ export const TaskRecentList = () => {
                           <Avatar
                             key={a.id || a._id || a.email || `assignee-${a.name || i}`}
                             src={a.avatar}
-                            name={a.name || "User"}
+                            name={a.name}
+                            email={a.email}
                             size="xs"
                             className="ring-2 ring-white"
                           />

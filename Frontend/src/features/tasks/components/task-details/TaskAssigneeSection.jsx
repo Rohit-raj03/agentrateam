@@ -85,6 +85,7 @@ export const TaskAssigneeSection = ({
                     <Avatar
                       src={member.avatar}
                       name={member.name}
+                      email={member.email}
                       size="xs"
                       className="ring-1 ring-slate-100"
                     />
@@ -127,6 +128,7 @@ export const TaskAssigneeSection = ({
                 <Avatar
                   src={user.avatar}
                   name={user.name}
+                  email={user.email}
                   size="sm"
                   className="ring-1 ring-slate-100 shrink-0"
                 />

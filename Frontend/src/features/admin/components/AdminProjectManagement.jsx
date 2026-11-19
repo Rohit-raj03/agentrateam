@@ -1,22 +1,11 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import {
-  FolderKanban,
-  Search,
-  Plus,
-  Trash2,
-
-  ExternalLink,
-
-
-
-
-
-} from 'lucide-react';
-import { Badge } from '../../../shared/components/ui/Badge.jsx';
-import { ROUTES } from '../../../shared/constants/routes.js';
-import { AdminConfirmationModal } from './AdminConfirmationModal.jsx';
-import { formatDate } from '../../../shared/utils/formatDate.js';
+import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { FolderKanban, Search, Plus, Trash2, ExternalLink } from "lucide-react";
+import { Badge } from "../../../shared/components/ui/Badge.jsx";
+import { ROUTES } from "../../../shared/constants/routes.js";
+import { AdminConfirmationModal } from "./AdminConfirmationModal.jsx";
+import { formatDate } from "../../../shared/utils/formatDate.js";
+import { Avatar } from "../../../shared/components/ui/Avatar.jsx";
 
 /**
  * Feature Component: AdminProjectManagement
@@ -29,15 +18,15 @@ export const AdminProjectManagement = ({
   onOpenCreateProject,
 }) => {
   const navigate = useNavigate();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("ALL");
 
   // Confirmation modal
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
-    title: '',
-    message: '',
-    confirmLabel: '',
+    title: "",
+    message: "",
+    confirmLabel: "",
     onConfirm: () => {},
   });
 
@@ -50,7 +39,7 @@ export const AdminProjectManagement = ({
         p.category?.toLowerCase().includes(q) ||
         p.description?.toLowerCase().includes(q);
 
-      const matchesStatus = statusFilter === 'ALL' || p.status === statusFilter;
+      const matchesStatus = statusFilter === "ALL" || p.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [projects, searchQuery, statusFilter]);
@@ -60,7 +49,7 @@ export const AdminProjectManagement = ({
       isOpen: true,
       title: `Delete Project: ${project.name}?`,
       message: `Are you sure you want to permanently delete this project? All associated tasks, milestones, and member allocations will be removed.`,
-      confirmLabel: 'Delete Project Permanently',
+      confirmLabel: "Delete Project Permanently",
       onConfirm: () => onDeleteProject(project.id),
     });
   };
@@ -70,9 +59,12 @@ export const AdminProjectManagement = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold text-slate-900">Project Management</h2>
+          <h2 className="text-base font-bold text-slate-900">
+            Project Management
+          </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Oversee organizational initiatives, deliverable health, and lead assignments.
+            Oversee organizational initiatives, deliverable health, and lead
+            assignments.
           </p>
         </div>
 
@@ -104,27 +96,29 @@ export const AdminProjectManagement = ({
         </div>
 
         <div className="flex items-center gap-1.5 overflow-x-auto text-xs font-semibold">
-          {['ALL', 'ACTIVE', 'IN_PROGRESS', 'PLANNING', 'COMPLETED'].map((st) => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-3 py-1.5 rounded-xl transition-colors whitespace-nowrap ${
-                statusFilter === st
-                  ? 'bg-primary text-white shadow-xs'
-                  : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
-              }`}
-            >
-              {st === 'ALL'
-                ? 'All'
-                : st === 'ACTIVE'
-                ? 'Active'
-                : st === 'IN_PROGRESS'
-                ? 'In Progress'
-                : st === 'PLANNING'
-                ? 'Planning'
-                : 'Completed'}
-            </button>
-          ))}
+          {["ALL", "ACTIVE", "IN_PROGRESS", "PLANNING", "COMPLETED"].map(
+            (st) => (
+              <button
+                key={st}
+                onClick={() => setStatusFilter(st)}
+                className={`px-3 py-1.5 rounded-xl transition-colors whitespace-nowrap ${
+                  statusFilter === st
+                    ? "bg-primary text-white shadow-xs"
+                    : "bg-slate-100 hover:bg-slate-200 text-slate-600"
+                }`}
+              >
+                {st === "ALL"
+                  ? "All"
+                  : st === "ACTIVE"
+                    ? "Active"
+                    : st === "IN_PROGRESS"
+                      ? "In Progress"
+                      : st === "PLANNING"
+                        ? "Planning"
+                        : "Completed"}
+              </button>
+            ),
+          )}
         </div>
       </div>
 
@@ -157,7 +151,9 @@ export const AdminProjectManagement = ({
                         <div className="flex items-center gap-3">
                           <div
                             className="w-8 h-8 rounded-xl flex items-center justify-center text-white shrink-0 font-bold"
-                            style={{ backgroundColor: project.color || '#4361EE' }}
+                            style={{
+                              backgroundColor: project.color || "#4361EE",
+                            }}
                           >
                             <FolderKanban size={16} />
                           </div>
@@ -166,7 +162,7 @@ export const AdminProjectManagement = ({
                               {project.name}
                             </p>
                             <p className="text-[10px] text-slate-400">
-                              {project.category || 'Initiative'}
+                              {project.category || "Initiative"}
                             </p>
                           </div>
                         </div>
@@ -176,52 +172,69 @@ export const AdminProjectManagement = ({
                       <td className="py-3.5 px-4">
                         <Badge
                           variant={
-                            project.status === 'ACTIVE'
-                              ? 'success'
-                              : project.status === 'IN_PROGRESS'
-                              ? 'primary'
-                              : 'default'
+                            project.status === "ACTIVE"
+                              ? "success"
+                              : project.status === "IN_PROGRESS"
+                                ? "primary"
+                                : "default"
                           }
                         >
-                          {project.status?.replace('_', ' ')}
+                          {project.status?.replace("_", " ")}
                         </Badge>
                       </td>
 
                       {/* Due Date */}
                       <td className="py-3.5 px-4 text-slate-500 font-medium">
-                        {project.dueDate ? formatDate(project.dueDate) : 'No due date'}
+                        {project.dueDate
+                          ? formatDate(project.dueDate)
+                          : "No due date"}
                       </td>
 
                       {/* Tagged Members Stack */}
                       <td className="py-3.5 px-4">
                         {project.members && project.members.length > 0 ? (
                           <div className="flex items-center">
-                            <div className="flex -space-x-1.5 overflow-hidden">
-                              {project.members.slice(0, 3).map((m) => (
-                                <img
-                                  key={m.id}
-                                  src={m.avatar}
-                                  alt={m.name}
-                                  title={m.name}
-                                  className="w-6 h-6 rounded-full object-cover ring-2 ring-white"
-                                  onError={(e) => {
-                                    e.target.src = `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(m.name)}`;
-                                  }}
-                                />
-                              ))}
+                            <div className="flex -space-x-1.5">
+                              {project.members.slice(0, 3).map((m, index) => {
+                                const memberUser =
+                                  m?.user && typeof m.user === "object" ? m.user : {};
+                                const name = m?.name || memberUser.name || "";
+                                const avatar = m?.avatar || memberUser.avatar || null;
+                                const email = m?.email || memberUser.email || "";
+                                const key =
+                                  m?.id ||
+                                  m?._id ||
+                                  memberUser.id ||
+                                  memberUser._id ||
+                                  `apm-${index}`;
+
+                                return (
+                                  <Avatar
+                                    key={key}
+                                    src={avatar}
+                                    name={name}
+                                    email={email}
+                                    size="xs"
+                                    className="w-6 h-6 ring-2 ring-white"
+                                  />
+                                );
+                              })}
                             </div>
                             <span className="ml-1 text-[11px] text-slate-500 font-medium">
                               ({project.members.length})
                             </span>
                           </div>
                         ) : (
-                          <span className="text-slate-400 text-[11px] italic">0 members</span>
+                          <span className="text-slate-400 text-[11px] italic">
+                            0 members
+                          </span>
                         )}
                       </td>
 
                       {/* Task Velocity */}
                       <td className="py-3.5 px-4 text-slate-600 font-medium">
-                        {project.completedTasksCount || 0} / {project.tasksCount || 0} done
+                        {project.completedTasksCount || 0} /{" "}
+                        {project.tasksCount || 0} done
                       </td>
 
                       {/* Progress Bar */}
@@ -235,7 +248,7 @@ export const AdminProjectManagement = ({
                               className="h-1.5 rounded-full transition-all"
                               style={{
                                 width: `${progress}%`,
-                                backgroundColor: project.color || '#4361EE',
+                                backgroundColor: project.color || "#4361EE",
                               }}
                             />
                           </div>
@@ -247,7 +260,9 @@ export const AdminProjectManagement = ({
                         <div className="flex items-center justify-end gap-1">
                           <button
                             type="button"
-                            onClick={() => navigate(ROUTES.PROJECT_DETAILS(project.id))}
+                            onClick={() =>
+                              navigate(ROUTES.PROJECT_DETAILS(project.id))
+                            }
                             title="Open Project Workspace"
                             className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-indigo-50 transition-colors"
                           >
@@ -291,4 +306,3 @@ export const AdminProjectManagement = ({
     </div>
   );
 };
-
