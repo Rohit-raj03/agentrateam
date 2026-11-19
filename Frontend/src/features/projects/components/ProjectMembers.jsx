@@ -17,19 +17,25 @@ import {
 } from "lucide-react";
 import { projectService } from "../services/project.service.js";
 import { Avatar } from "../../../shared/components/ui/Avatar.jsx";
+import { MemberRoleChip } from "./MemberRoleChip.jsx";
+import { MemberSelector } from "../../../shared/components/ui/MemberSelector.jsx";
+import { ASSIGNED_TAGS } from "../../../shared/data/assignedTags.js";
 
 const ACCESS_ROLES = ["Admin", "Member", "Viewer"];
 
-const SPECIALTY_ROLES = [
-  "Project Lead",
-  "Frontend Contributor",
-  "Backend Contributor",
-  "Full Stack Contributor",
-  "UI/UX Designer",
-  "QA Reviewer",
-  "DevOps Engineer",
-  "Contributor",
-];
+const SPECIALTY_ROLES = Array.from(
+  new Set([
+    "Project Lead",
+    "Frontend Contributor",
+    "Backend Contributor",
+    "Full Stack Contributor",
+    "UI/UX Designer",
+    "QA Reviewer",
+    "DevOps Engineer",
+    "Contributor",
+    ...Object.values(ASSIGNED_TAGS),
+  ]),
+);
 
 const ROLE_BADGES = {
   Owner: {
@@ -78,13 +84,11 @@ export const ProjectMembers = ({
   const [editProjectRole, setEditProjectRole] = useState("Contributor");
 
   // Add Member State
-  const [eligibleSearch, setEligibleSearch] = useState("");
   const [eligibleUsers, setEligibleUsers] = useState([]);
   const [loadingEligible, setLoadingEligible] = useState(false);
-  const [selectedUserToAdd, setSelectedUserToAdd] = useState(null);
+  const [selectedUsersToAdd, setSelectedUsersToAdd] = useState([]);
   const [newMemberRole, setNewMemberRole] = useState("Member");
-  const [newMemberProjectRole, setNewMemberProjectRole] =
-    useState("Contributor");
+  const newMemberProjectRole = "Contributor";
   const [addError, setAddError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -102,7 +106,7 @@ export const ProjectMembers = ({
     );
   }, [members, memberSearchQuery]);
 
-  // Fetch eligible users when Add Member modal is opened or search changes
+  // Fetch eligible users when Add Member modal is opened
   useEffect(() => {
     if (!isAddModalOpen || !projectId) return;
 
@@ -110,15 +114,12 @@ export const ProjectMembers = ({
     const fetchEligible = async () => {
       setLoadingEligible(true);
       try {
-        const res = await projectService.getEligibleMembers(
-          projectId,
-          eligibleSearch.trim(),
-        );
+        const res = await projectService.getEligibleMembers(projectId, "");
         if (isMounted) {
           const list = res?.users || res?.data || [];
           setEligibleUsers(list);
         }
-      } catch (err) {
+      } catch {
         if (isMounted) {
           setEligibleUsers([]);
         }
@@ -129,17 +130,16 @@ export const ProjectMembers = ({
       }
     };
 
-    const timer = setTimeout(fetchEligible, 250);
+    fetchEligible();
     return () => {
       isMounted = false;
-      clearTimeout(timer);
     };
-  }, [isAddModalOpen, projectId, eligibleSearch]);
+  }, [isAddModalOpen, projectId]);
 
   const handleAddMemberSubmit = async (e) => {
-    e.preventDefault();
-    if (!selectedUserToAdd) {
-      setAddError("Please select a user to add.");
+    e?.preventDefault?.();
+    if (selectedUsersToAdd.length === 0) {
+      setAddError("Please search and select at least one team member to add.");
       return;
     }
 
@@ -147,13 +147,17 @@ export const ProjectMembers = ({
     setAddError("");
     try {
       if (onTagMember) {
-        await onTagMember(
-          selectedUserToAdd,
-          newMemberProjectRole,
-          newMemberRole,
-        );
+        for (const user of selectedUsersToAdd) {
+          const tags = user.tags || user.projectRoles || [user.projectRole || newMemberProjectRole || "Contributor"];
+          const projRole = tags[0] || "Contributor";
+          await onTagMember(
+            user,
+            projRole,
+            newMemberRole,
+          );
+        }
       }
-      setSelectedUserToAdd(null);
+      setSelectedUsersToAdd([]);
       setIsAddModalOpen(false);
     } catch (err) {
       setAddError(err?.message || "Failed to add member to project.");
@@ -225,9 +229,9 @@ export const ProjectMembers = ({
             onClick={() => {
               setIsAddModalOpen(true);
               setAddError("");
-              setSelectedUserToAdd(null);
+              setSelectedUsersToAdd([]);
             }}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-xs transition-all"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-xs transition-all cursor-pointer"
           >
             <UserPlus size={14} />
             <span>Add Member</span>
@@ -247,8 +251,11 @@ export const ProjectMembers = ({
             </div>
             <button
               type="button"
-              onClick={() => setIsAddModalOpen(false)}
-              className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-lg transition-colors"
+              onClick={() => {
+                setIsAddModalOpen(false);
+                setSelectedUsersToAdd([]);
+              }}
+              className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-200/50 rounded-lg transition-colors cursor-pointer"
             >
               <X size={15} />
             </button>
@@ -261,143 +268,42 @@ export const ProjectMembers = ({
             </div>
           )}
 
-          {/* Search Eligible Users */}
-          <div className="space-y-1.5">
-            <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider">
-              Find User by Name or Email
-            </label>
-            <div className="relative">
-              <Search
-                size={15}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none"
-              />
-              <input
-                type="text"
-                placeholder="Type name, email, or username to search non-members..."
-                value={eligibleSearch}
-                onChange={(e) => setEligibleSearch(e.target.value)}
-                className="w-full pl-9 pr-3 py-2 rounded-xl border border-slate-200 text-xs bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
+          {/* Canonical MemberSelector for Eligible Non-Members */}
+          <div className="p-3 sm:p-4 rounded-2xl bg-white border border-slate-200/80 shadow-2xs">
+            <MemberSelector
+              value={selectedUsersToAdd}
+              onChange={setSelectedUsersToAdd}
+              availableMembers={eligibleUsers}
+              loading={loadingEligible}
+              label="Select Contributors to Add"
+              countLabel="selected"
+              placeholder="Search eligible non-members by name, email, or role..."
+              emptyMessage={
+                eligibleUsers.length === 0 && !loadingEligible
+                  ? "All registered users are already in this project or none found."
+                  : "No users selected yet. Search above to choose team members to add."
+              }
+              defaultRole={newMemberProjectRole || "Contributor"}
+            />
           </div>
 
-          {/* User Results Selector */}
-          <div className="max-h-44 overflow-y-auto rounded-2xl border border-slate-200 bg-white divide-y divide-slate-100">
-            {loadingEligible ? (
-              <div className="p-4 text-center text-xs text-slate-400 flex items-center justify-center gap-2">
-                <Loader2 size={14} className="animate-spin text-primary" />
-                <span>Searching eligible registered users...</span>
-              </div>
-            ) : eligibleUsers.length > 0 ? (
-              eligibleUsers.map((user) => {
-                const isSelected =
-                  selectedUserToAdd?.id === (user.id || user._id);
-                return (
-                  <div
-                    key={user.id || user._id}
-                    onClick={() =>
-                      setSelectedUserToAdd({
-                        id: user.id || user._id,
-                        name: user.name,
-                        email: user.email,
-                        username: user.username,
-                        avatar: user.avatar,
-                        role: user.role,
-                      })
-                    }
-                    className={`p-2.5 flex items-center justify-between cursor-pointer transition-colors ${
-                      isSelected
-                        ? "bg-indigo-50/80 border-l-4 border-primary"
-                        : "hover:bg-slate-50"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <Avatar
-                        src={user.avatar}
-                        name={user.name}
-                        email={user.email}
-                        size="sm"
-                        className="ring-1 ring-slate-100 shrink-0"
-                      />
-                      <div className="min-w-0">
-                        <p className="text-xs font-bold text-slate-800 truncate">
-                          {user.name}
-                        </p>
-                        <p className="text-[11px] text-slate-400 truncate">
-                          {user.email}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="shrink-0 flex items-center gap-2">
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">
-                        {user.jobTitle || user.role || "User"}
-                      </span>
-                      {isSelected ? (
-                        <div className="w-5 h-5 rounded-full bg-primary text-white flex items-center justify-center">
-                          <Check size={12} strokeWidth={3} />
-                        </div>
-                      ) : (
-                        <span className="text-[11px] font-semibold text-primary">
-                          Select
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                );
-              })
-            ) : (
-              <div className="p-4 text-center text-xs text-slate-400">
-                {eligibleSearch
-                  ? `No eligible users found matching "${eligibleSearch}".`
-                  : "All registered users are already in this project or none found."}
-              </div>
-            )}
-          </div>
-
-          {/* Role Configuration for the selected user */}
-          {selectedUserToAdd && (
-            <div className="p-3 rounded-2xl bg-white border border-slate-200/80 space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-slate-800">
-                <span>Configure Role for</span>
-                <span className="text-primary">{selectedUserToAdd.name}</span>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    Project Access Level
-                  </label>
-                  <select
-                    value={newMemberRole}
-                    onChange={(e) => setNewMemberRole(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-primary"
-                  >
-                    {ACCESS_ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                    Project Responsibility / Specialty
-                  </label>
-                  <select
-                    value={newMemberProjectRole}
-                    onChange={(e) => setNewMemberProjectRole(e.target.value)}
-                    className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-primary"
-                  >
-                    {SPECIALTY_ROLES.map((r) => (
-                      <option key={r} value={r}>
-                        {r}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+          {/* Project Access Level Configuration */}
+          {selectedUsersToAdd.length > 0 && (
+            <div className="p-3.5 rounded-2xl bg-white border border-slate-200/80 space-y-2">
+              <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                Default Project Access Level
+              </label>
+              <select
+                value={newMemberRole}
+                onChange={(e) => setNewMemberRole(e.target.value)}
+                className="w-full px-3 py-1.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white text-slate-800 focus:ring-2 focus:ring-primary"
+              >
+                {ACCESS_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
 
@@ -405,16 +311,19 @@ export const ProjectMembers = ({
           <div className="flex items-center justify-end gap-2 pt-2">
             <button
               type="button"
-              onClick={() => setIsAddModalOpen(false)}
-              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors"
+              onClick={() => {
+                setIsAddModalOpen(false);
+                setSelectedUsersToAdd([]);
+              }}
+              className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="button"
               onClick={handleAddMemberSubmit}
-              disabled={!selectedUserToAdd || isSubmitting}
-              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-xs transition-all disabled:opacity-50"
+              disabled={selectedUsersToAdd.length === 0 || isSubmitting}
+              className="inline-flex items-center gap-1.5 px-5 py-2 rounded-xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-xs transition-all disabled:opacity-50 cursor-pointer"
             >
               {isSubmitting ? (
                 <>
@@ -424,7 +333,9 @@ export const ProjectMembers = ({
               ) : (
                 <>
                   <Check size={14} />
-                  <span>Add to Project</span>
+                  <span>
+                    Add {selectedUsersToAdd.length > 0 ? `${selectedUsersToAdd.length} Member${selectedUsersToAdd.length > 1 ? "s" : ""}` : "to Project"}
+                  </span>
                 </>
               )}
             </button>
@@ -440,6 +351,18 @@ export const ProjectMembers = ({
             const Icon = roleInfo.icon;
             const isOwner = member.role === "Owner";
             const isEditing = editingMemberId === member.id;
+
+            // Extract all member project role tags
+            const memberRoles = (() => {
+              if (Array.isArray(member.tags) && member.tags.length > 0) return member.tags;
+              if (Array.isArray(member.projectRoles) && member.projectRoles.length > 0) return member.projectRoles;
+              if (Array.isArray(member.projectRole) && member.projectRole.length > 0) return member.projectRole;
+              if (typeof member.projectRole === "string" && member.projectRole.includes(",")) {
+                return member.projectRole.split(",").map((s) => s.trim()).filter(Boolean);
+              }
+              if (member.projectRole) return [member.projectRole];
+              return ["Contributor"];
+            })();
 
             return (
               <div
@@ -518,6 +441,9 @@ export const ProjectMembers = ({
                             </option>
                           ))}
                         </select>
+                        <div className="mt-1 flex items-center">
+                          <MemberRoleChip tag={editProjectRole} removable={false} />
+                        </div>
                       </div>
                     </div>
 
@@ -539,18 +465,25 @@ export const ProjectMembers = ({
                     </div>
                   </div>
                 ) : (
-                  /* Normal View: Project Role + Actions */
-                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
-                    <span className="font-semibold text-slate-500">
-                      {member.projectRole || "Contributor"}
-                    </span>
+                  /* Normal View: Project Role Tag Chips + Actions */
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100 gap-2 min-h-8">
+                    <div className="flex flex-wrap items-center gap-1 min-w-0 flex-1">
+                      {memberRoles.map((roleTag) => (
+                        <MemberRoleChip
+                          key={roleTag}
+                          tag={roleTag}
+                          removable={false}
+                          maxWidthClass="max-w-28 sm:max-w-36"
+                        />
+                      ))}
+                    </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 shrink-0 ml-auto">
                       {!isOwner && onUpdateMemberRole && (
                         <button
                           type="button"
                           onClick={() => startEditMember(member)}
-                          className="px-2 py-0.5 rounded-lg text-[10px] font-bold text-slate-500 hover:text-primary hover:bg-indigo-50 transition-colors"
+                          className="px-2 py-0.5 rounded-lg text-[10px] font-bold text-slate-500 hover:text-primary hover:bg-indigo-50 transition-colors cursor-pointer"
                         >
                           Change Role
                         </button>
@@ -569,7 +502,7 @@ export const ProjectMembers = ({
                             }
                           }}
                           title={`Remove ${member.name} from project`}
-                          className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+                          className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
                         >
                           <Trash2 size={13} />
                         </button>

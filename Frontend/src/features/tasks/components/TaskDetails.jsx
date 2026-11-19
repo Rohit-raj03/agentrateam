@@ -221,7 +221,24 @@ export const TaskDetails = ({
     onUpdate?.(updatedTask);
   };
 
-  // 5. QUICK REMOVE SINGLE ASSIGNEE
+  // 5. ATOMIC UPDATE OF ALL ASSIGNEES
+  const handleUpdateAssignees = (updatedAssignees) => {
+    const updatedAssignedTo =
+      updatedAssignees.length > 0
+        ? updatedAssignees.map((a) => a.name).join(", ")
+        : "Unassigned";
+
+    const updatedTask = {
+      ...task,
+      assignees: updatedAssignees,
+      assignedTo: updatedAssignedTo,
+    };
+
+    updateTask(updatedTask);
+    onUpdate?.(updatedTask);
+  };
+
+  // 6. QUICK REMOVE SINGLE ASSIGNEE
   const handleRemoveAssignee = (memberId, e) => {
     e?.stopPropagation?.();
     const updatedAssignees = (task.assignees || []).filter(
@@ -361,6 +378,7 @@ export const TaskDetails = ({
       <TaskAssigneeSection
         assignees={task.assignees || []}
         effectiveMembers={effectiveMembers}
+        onUpdateAssignees={handleUpdateAssignees}
         onToggleAssignee={handleToggleAssignee}
         onRemoveAssignee={handleRemoveAssignee}
       />

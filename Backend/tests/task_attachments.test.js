@@ -177,12 +177,12 @@ describe("=== 2. Task Schema & Attachments Transformation Tests ===", () => {
           _id: "607f1f77bcf86cd799439099",
           fileId: "ik_att_123",
           fileName: "wireframes.png",
-          fileUrl: "https://ik.imagekit.io/teamsync/attachments/wireframes.png",
+          fileUrl: "https://ik.imagekit.io/agentrateam/attachments/wireframes.png",
           fileType: "image",
           mimeType: "image/png",
           fileSize: 2048576, // ~1.95MB
           thumbnailUrl:
-            "https://ik.imagekit.io/teamsync/tr:n-media_library_thumbnail/attachments/wireframes.png",
+            "https://ik.imagekit.io/agentrateam/tr:n-media_library_thumbnail/attachments/wireframes.png",
           uploadedBy: "507f1f77bcf86cd799439001",
         },
       ],
@@ -199,11 +199,11 @@ describe("=== 2. Task Schema & Attachments Transformation Tests ===", () => {
     assert.equal(att.name, "wireframes.png"); // legacy alias
     assert.equal(
       att.fileUrl,
-      "https://ik.imagekit.io/teamsync/attachments/wireframes.png",
+      "https://ik.imagekit.io/agentrateam/attachments/wireframes.png",
     );
     assert.equal(
       att.url,
-      "https://ik.imagekit.io/teamsync/attachments/wireframes.png",
+      "https://ik.imagekit.io/agentrateam/attachments/wireframes.png",
     ); // legacy alias
     assert.equal(att.fileType, "image");
     assert.equal(att.type, "image"); // legacy alias
@@ -320,12 +320,12 @@ describe("=== 3. 14 Required Feature Scenarios Verification ===", () => {
             fileId: "ik_img_123",
             fileName: "screenshot.png",
             fileUrl:
-              "https://ik.imagekit.io/teamsync/attachments/screenshot.png",
+              "https://ik.imagekit.io/agentrateam/attachments/screenshot.png",
             fileType: "image",
             mimeType: "image/png",
             fileSize: 1048576,
             thumbnailUrl:
-              "https://ik.imagekit.io/teamsync/attachments/screenshot.png",
+              "https://ik.imagekit.io/agentrateam/attachments/screenshot.png",
           },
         ],
       },
@@ -394,7 +394,7 @@ describe("=== 3. 14 Required Feature Scenarios Verification ===", () => {
             fileId: "ik_pdf_01",
             fileName: "architecture.pdf",
             fileUrl:
-              "https://ik.imagekit.io/teamsync/attachments/architecture.pdf",
+              "https://ik.imagekit.io/agentrateam/attachments/architecture.pdf",
             fileType: "pdf",
             fileSize: 524288,
           },
@@ -402,14 +402,14 @@ describe("=== 3. 14 Required Feature Scenarios Verification ===", () => {
             fileId: "ik_docx_02",
             fileName: "requirements.docx",
             fileUrl:
-              "https://ik.imagekit.io/teamsync/attachments/requirements.docx",
+              "https://ik.imagekit.io/agentrateam/attachments/requirements.docx",
             fileType: "document",
             fileSize: 104857,
           },
           {
             fileId: "ik_csv_03",
             fileName: "users.csv",
-            fileUrl: "https://ik.imagekit.io/teamsync/attachments/users.csv",
+            fileUrl: "https://ik.imagekit.io/agentrateam/attachments/users.csv",
             fileType: "spreadsheet",
             fileSize: 4096,
           },
@@ -451,12 +451,12 @@ describe("=== 3. 14 Required Feature Scenarios Verification ===", () => {
   test("Scenario 4: Upload multiple files successfully via uploadTaskAttachments", async () => {
     imagekit.files.upload = async (params) => {
       return {
-        url: `https://ik.imagekit.io/teamsync/attachments/${params.fileName}`,
+        url: `https://ik.imagekit.io/agentrateam/attachments/${params.fileName}`,
         fileId: `ik_id_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
         name: params.fileName,
         size: 1024,
         filePath: `/attachments/${params.fileName}`,
-        thumbnailUrl: `https://ik.imagekit.io/teamsync/attachments/${params.fileName}`,
+        thumbnailUrl: `https://ik.imagekit.io/agentrateam/attachments/${params.fileName}`,
       };
     };
 

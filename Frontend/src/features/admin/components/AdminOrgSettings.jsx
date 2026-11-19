@@ -152,7 +152,7 @@ export const AdminOrgSettings = ({ onSaveSettings }) => {
 
         <button
           type="button"
-          onClick={() => alert('System snapshot exported successfully as teamsync-backup.json')}
+          onClick={() => alert('System snapshot exported successfully as agentrateam-backup.json')}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 font-semibold text-slate-700 hover:bg-slate-50 transition-colors shrink-0"
         >
           <Download size={14} />

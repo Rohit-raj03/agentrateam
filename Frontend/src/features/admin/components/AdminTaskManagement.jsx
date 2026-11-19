@@ -1,22 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo } from "react";
+import { Search, Plus, Trash2, Eye } from "lucide-react";
+
 import {
+  formatDate,
+  formatDateForInput,
+} from "../../../shared/utils/formatDate.js";
 
-  Search,
-  Plus,
-  Trash2,
-
-
-
-
-
-
-  Eye,
-
-} from 'lucide-react';
-
-import { formatDate, formatDateForInput } from '../../../shared/utils/formatDate.js';
-
-import { AdminConfirmationModal } from './AdminConfirmationModal.jsx';
+import { AdminConfirmationModal } from "./AdminConfirmationModal.jsx";
 
 /**
  * Feature Component: AdminTaskManagement
@@ -29,17 +19,17 @@ export const AdminTaskManagement = ({
   onDeleteTask,
   onOpenCreateTask,
   onOpenTaskDetails,
-  initialFilter = 'ALL',
+  initialFilter = "ALL",
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState(initialFilter);
-  const [priorityFilter, setPriorityFilter] = useState('ALL');
+  const [priorityFilter, setPriorityFilter] = useState("ALL");
 
   const [confirmModal, setConfirmModal] = useState({
     isOpen: false,
-    title: '',
-    message: '',
-    confirmLabel: '',
+    title: "",
+    message: "",
+    confirmLabel: "",
     onConfirm: () => {},
   });
 
@@ -55,18 +45,18 @@ export const AdminTaskManagement = ({
         t.assignedTo?.toLowerCase().includes(q) ||
         t.projectName?.toLowerCase().includes(q);
 
-      const isDone = t.status === 'COMPLETED' || t.status === 'Done';
+      const isDone = t.status === "COMPLETED" || t.status === "Done";
       const isOverdue = !isDone && t.dueDate && t.dueDate < todayStr;
 
       let matchesStatus = true;
-      if (statusFilter === 'OVERDUE') {
+      if (statusFilter === "OVERDUE") {
         matchesStatus = isOverdue;
-      } else if (statusFilter !== 'ALL') {
+      } else if (statusFilter !== "ALL") {
         matchesStatus = t.status === statusFilter;
       }
 
       const matchesPriority =
-        priorityFilter === 'ALL' || t.priority === priorityFilter;
+        priorityFilter === "ALL" || t.priority === priorityFilter;
 
       return matchesSearch && matchesStatus && matchesPriority;
     });
@@ -85,7 +75,7 @@ export const AdminTaskManagement = ({
       isOpen: true,
       title: `Delete Task: "${task.title}"?`,
       message: `Are you sure you want to delete this task? It will be removed from all projects and assignees.`,
-      confirmLabel: 'Delete Task Permanently',
+      confirmLabel: "Delete Task Permanently",
       onConfirm: () => onDeleteTask(task.id),
     });
   };
@@ -95,9 +85,12 @@ export const AdminTaskManagement = ({
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-base font-bold text-slate-900">Task Management</h2>
+          <h2 className="text-base font-bold text-slate-900">
+            Task Management
+          </h2>
           <p className="text-xs text-slate-400 mt-0.5">
-            Audit work items, modify schedules, reassign contributors, and eliminate bottlenecks.
+            Audit work items, modify schedules, reassign contributors, and
+            eliminate bottlenecks.
           </p>
         </div>
 
@@ -148,12 +141,12 @@ export const AdminTaskManagement = ({
         <div className="flex flex-wrap items-center justify-between pt-2 border-t border-slate-50 text-xs gap-2">
           <div className="flex flex-wrap items-center gap-1.5">
             {[
-              { id: 'ALL', label: 'All Tasks' },
-              { id: 'OVERDUE', label: 'Overdue Only', isDanger: true },
-              { id: 'TODO', label: 'To Do' },
-              { id: 'IN_PROGRESS', label: 'In Progress' },
-              { id: 'IN_REVIEW', label: 'Review' },
-              { id: 'COMPLETED', label: 'Completed' },
+              { id: "ALL", label: "All Tasks" },
+              { id: "OVERDUE", label: "Overdue Only", isDanger: true },
+              { id: "TODO", label: "To Do" },
+              { id: "IN_PROGRESS", label: "In Progress" },
+              { id: "IN_REVIEW", label: "Review" },
+              { id: "COMPLETED", label: "Completed" },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -161,11 +154,11 @@ export const AdminTaskManagement = ({
                 className={`px-3 py-1 rounded-lg text-[11px] font-semibold transition-colors ${
                   statusFilter === tab.id
                     ? tab.isDanger
-                      ? 'bg-rose-600 text-white shadow-xs'
-                      : 'bg-primary text-white shadow-xs'
+                      ? "bg-rose-600 text-white shadow-xs"
+                      : "bg-primary text-white shadow-xs"
                     : tab.isDanger
-                    ? 'bg-rose-50 text-rose-700 hover:bg-rose-100'
-                    : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
+                      ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
+                      : "bg-slate-100 hover:bg-slate-200 text-slate-600"
                 }`}
               >
                 {tab.label}
@@ -196,8 +189,10 @@ export const AdminTaskManagement = ({
             <tbody className="divide-y divide-slate-100">
               {filteredTasks.length > 0 ? (
                 filteredTasks.map((task) => {
-                  const isDone = task.status === 'COMPLETED' || task.status === 'Done';
-                  const isOverdue = !isDone && task.dueDate && task.dueDate < todayStr;
+                  const isDone =
+                    task.status === "COMPLETED" || task.status === "Done";
+                  const isOverdue =
+                    !isDone && task.dueDate && task.dueDate < todayStr;
 
                   return (
                     <tr
@@ -211,7 +206,7 @@ export const AdminTaskManagement = ({
                             {task.title}
                           </p>
                           <span className="text-[10px] font-semibold text-slate-400">
-                            {task.projectName || 'General Workspace'}
+                            {task.projectName || "General Workspace"}
                           </span>
                         </div>
                       </td>
@@ -220,7 +215,9 @@ export const AdminTaskManagement = ({
                       <td className="py-3.5 px-4">
                         <select
                           value={task.status}
-                          onChange={(e) => handleQuickStatus(task, e.target.value)}
+                          onChange={(e) =>
+                            handleQuickStatus(task, e.target.value)
+                          }
                           className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white text-slate-700 cursor-pointer focus:ring-1 focus:ring-primary"
                         >
                           <option value="TODO">To Do</option>
@@ -234,7 +231,9 @@ export const AdminTaskManagement = ({
                       <td className="py-3.5 px-4">
                         <select
                           value={task.priority}
-                          onChange={(e) => handleQuickPriority(task, e.target.value)}
+                          onChange={(e) =>
+                            handleQuickPriority(task, e.target.value)
+                          }
                           className="px-2.5 py-1 rounded-xl border border-slate-200 text-[11px] font-semibold bg-white text-slate-700 cursor-pointer focus:ring-1 focus:ring-primary"
                         >
                           <option value="LOW">Low</option>
@@ -255,12 +254,13 @@ export const AdminTaskManagement = ({
                             />
                             <span className="font-semibold text-slate-700 truncate max-w-30">
                               {task.assignees[0].name}
-                              {task.assignees.length > 1 && ` +${task.assignees.length - 1}`}
+                              {task.assignees.length > 1 &&
+                                ` +${task.assignees.length - 1}`}
                             </span>
                           </div>
                         ) : (
                           <span className="text-slate-600 font-medium">
-                            {task.assignedTo || 'Unassigned'}
+                            {task.assignedTo || "Unassigned"}
                           </span>
                         )}
                       </td>
@@ -270,10 +270,12 @@ export const AdminTaskManagement = ({
                         <div className="flex items-center gap-1.5">
                           <span
                             className={`font-semibold ${
-                              isOverdue ? 'text-rose-600' : 'text-slate-600'
+                              isOverdue ? "text-rose-600" : "text-slate-600"
                             }`}
                           >
-                            {task.dueDate ? formatDate(task.dueDate) : 'No due date'}
+                            {task.dueDate
+                              ? formatDate(task.dueDate)
+                              : "No due date"}
                           </span>
                           {isOverdue && (
                             <span className="text-[10px] font-bold px-1.5 py-0.2 rounded-full bg-rose-50 text-rose-600">
@@ -331,4 +333,3 @@ export const AdminTaskManagement = ({
     </div>
   );
 };
-

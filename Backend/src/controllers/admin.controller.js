@@ -294,7 +294,7 @@ export const createAdminUser = async (req, res) => {
     }
 
     // SEC-08: If password is not provided or too short, generate a secure random password
-    // Never fall back to predictable static strings like 'TeamSync@1234'
+    // Never fall back to predictable static strings like 'AgentraTeam@1234'
     const isGeneratedPassword =
       !password || typeof password !== "string" || password.trim().length < 6;
     const finalPassword = isGeneratedPassword

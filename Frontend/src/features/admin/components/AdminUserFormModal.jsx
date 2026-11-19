@@ -81,7 +81,7 @@ export const AdminUserFormModal = ({
             <input
               type="email"
               required
-              placeholder="e.g. vikram@teamsync.io"
+              placeholder="e.g. vikram@agentrateam.io"
               value={formData.email}
               onChange={(e) => onFieldChange('email', e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"

@@ -824,9 +824,31 @@ export const updateTask = async (req, res) => {
       });
     }
 
-    await task.save();
-
-    // Clean up removed ImageKit files only after DB save succeeds, and verify no other task references it
+    try {
+      await task.save();
+    } catch (saveErr) {
+      if (saveErr.name === "VersionError") {
+        await TaskModel.findByIdAndUpdate(task._id, {
+          $set: {
+            title: task.title,
+            description: task.description,
+            status: task.status,
+            priority: task.priority,
+            startDate: task.startDate,
+            dueDate: task.dueDate,
+            estimatedTime: task.estimatedTime,
+            assignees: task.assignees,
+            assignedTo: task.assignedTo,
+            tags: task.tags,
+            subtasks: task.subtasks,
+            comment: task.comment,
+            attachments: task.attachments,
+          },
+        });
+      } else {
+        throw saveErr;
+      }
+    }
     for (const fId of removedAttachmentFileIds) {
       try {
         const refCount = await TaskModel.countDocuments({

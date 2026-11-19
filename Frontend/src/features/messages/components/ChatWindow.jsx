@@ -36,7 +36,7 @@ export const ChatWindow = ({ activeChat, onToggleProfile, onBack }) => {
       time: "12:39 pm",
       isMe: false,
       attachment: {
-        title: "TeamSync_Design_System_v2.fig",
+        title: "AgentraTeam_Design_System_v2.fig",
         type: "Figma File",
         size: "18.4 MB",
       },

@@ -80,7 +80,7 @@ export const RegisterForm = () => {
           label="Email Address"
           name="email"
           type="email"
-          placeholder="alex@teamsync.io"
+          placeholder="alex@agentrateam.io"
           value={values.email}
           onChange={handleChange}
           icon={Mail}

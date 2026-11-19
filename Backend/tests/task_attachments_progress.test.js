@@ -97,7 +97,7 @@ describe("=== Attachment Upload Progress & Lifecycle Verification ===", () => {
     // ImageKit upload completes with fileId and url -> resolve target to 100%
     const mockImageKitResponse = {
       fileId: "ik_file_contract_123",
-      fileUrl: "https://ik.imagekit.io/team-sync/contract.pdf",
+      fileUrl: "https://ik.imagekit.io/agentrateam/contract.pdf",
     };
 
     assert.ok(mockImageKitResponse.fileId && mockImageKitResponse.fileUrl);

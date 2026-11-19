@@ -210,7 +210,7 @@ export const ForgotPasswordForm = () => {
             type="email"
             autoFocus
             disabled={status === "loading"}
-            placeholder="e.g. alex@teamsync.io"
+            placeholder="e.g. alex@agentrateam.io"
             value={email}
             onChange={(e) => {
               setEmail(e.target.value);

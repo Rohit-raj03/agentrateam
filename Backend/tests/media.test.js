@@ -82,12 +82,12 @@ describe("2. ImageKit Service Unit Tests (Mocked SDK)", () => {
       assert.ok(params.file);
       assert.equal(params.folder, "/profiles");
       return {
-        url: "https://ik.imagekit.io/teamsync/profiles/avatar_123.jpg",
+        url: "https://ik.imagekit.io/agentrateam/profiles/avatar_123.jpg",
         fileId: "ik_file_12345",
         name: "avatar_123.jpg",
         size: 2048,
         filePath: "/profiles/avatar_123.jpg",
-        thumbnailUrl: "https://ik.imagekit.io/teamsync/tr:n-media_library_thumbnail/profiles/avatar_123.jpg",
+        thumbnailUrl: "https://ik.imagekit.io/agentrateam/tr:n-media_library_thumbnail/profiles/avatar_123.jpg",
       };
     };
 
@@ -99,7 +99,7 @@ describe("2. ImageKit Service Unit Tests (Mocked SDK)", () => {
     });
 
     assert.equal(result.fileId, "ik_file_12345");
-    assert.equal(result.url, "https://ik.imagekit.io/teamsync/profiles/avatar_123.jpg");
+    assert.equal(result.url, "https://ik.imagekit.io/agentrateam/profiles/avatar_123.jpg");
     assert.equal(result.size, 2048);
   });
 
@@ -153,7 +153,7 @@ describe("3. Controller & Two-Phase Transactional Rollback Tests", () => {
   test("updateProfileAvatar: Successful avatar upload & replaces old file", async () => {
     let deletedOldFileId = null;
     imagekit.files.upload = async () => ({
-      url: "https://ik.imagekit.io/teamsync/new_avatar.jpg",
+      url: "https://ik.imagekit.io/agentrateam/new_avatar.jpg",
       fileId: "new_file_id_111",
       name: "new_avatar.jpg",
       size: 1024,
@@ -167,7 +167,7 @@ describe("3. Controller & Two-Phase Transactional Rollback Tests", () => {
     const mockUser = {
       _id: "user_abc_123",
       name: "Test User",
-      avatar: "https://ik.imagekit.io/teamsync/old_avatar.jpg",
+      avatar: "https://ik.imagekit.io/agentrateam/old_avatar.jpg",
       avatarFileId: "old_file_id_000",
       save: async () => true,
     };
@@ -203,7 +203,7 @@ describe("3. Controller & Two-Phase Transactional Rollback Tests", () => {
     assert.equal(responseStatus, 200);
     assert.equal(responseJson.success, true);
     assert.equal(responseJson.data.fileId, "new_file_id_111");
-    assert.equal(mockUser.avatar, "https://ik.imagekit.io/teamsync/new_avatar.jpg");
+    assert.equal(mockUser.avatar, "https://ik.imagekit.io/agentrateam/new_avatar.jpg");
     assert.equal(mockUser.avatarFileId, "new_file_id_111");
     // Assert old file was purged
     assert.equal(deletedOldFileId, "old_file_id_000");
@@ -255,7 +255,7 @@ describe("3. Controller & Two-Phase Transactional Rollback Tests", () => {
     let rolledBackFileId = null;
 
     imagekit.files.upload = async () => ({
-      url: "https://ik.imagekit.io/teamsync/orphan_avatar.jpg",
+      url: "https://ik.imagekit.io/agentrateam/orphan_avatar.jpg",
       fileId: "orphan_file_id_999",
       name: "orphan_avatar.jpg",
       size: 1024,
@@ -391,7 +391,7 @@ describe("3. Controller & Two-Phase Transactional Rollback Tests", () => {
 
     const mockUser = {
       _id: "user_abc_123",
-      avatar: "https://ik.imagekit.io/teamsync/avatar.jpg",
+      avatar: "https://ik.imagekit.io/agentrateam/avatar.jpg",
       avatarFileId: "avatar_file_id_555",
       save: async () => true,
     };
@@ -466,7 +466,7 @@ describe("3. Controller & Two-Phase Transactional Rollback Tests", () => {
     let deletedOldFileId = null;
 
     imagekit.files.upload = async () => ({
-      url: "https://ik.imagekit.io/teamsync/combined_avatar.jpg",
+      url: "https://ik.imagekit.io/agentrateam/combined_avatar.jpg",
       fileId: "combined_file_id_777",
       name: "combined_avatar.jpg",
       size: 1024,
@@ -519,7 +519,7 @@ describe("3. Controller & Two-Phase Transactional Rollback Tests", () => {
     assert.equal(responseJson.success, true);
     assert.equal(mockUser.name, "Alex New");
     assert.equal(mockUser.jobTitle, "Senior Architect");
-    assert.equal(mockUser.avatar, "https://ik.imagekit.io/teamsync/combined_avatar.jpg");
+    assert.equal(mockUser.avatar, "https://ik.imagekit.io/agentrateam/combined_avatar.jpg");
     assert.equal(mockUser.avatarFileId, "combined_file_id_777");
     // Ensure old file was safely cleaned up
     assert.equal(deletedOldFileId, "old_file_to_clean");

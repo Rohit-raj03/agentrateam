@@ -67,7 +67,7 @@ flowchart TB
 ## 📁 Repository Directory Map
 
 ```text
-team-sync/
+AgentraTeam/
 ├── Backend/                              # Express.js REST API Server
 │   ├── src/
 │   │   ├── app/
@@ -142,7 +142,7 @@ cp .env.example .env
 PORT=5050
 NODE_ENV=development
 CLIENT_URL=http://localhost:5173
-MONGO_URI=mongodb://localhost:27017/team-sync
+MONGO_URI=mongodb://localhost:27017/agentrateam
 
 # Authentication Secrets
 ACCESS_TOKEN_SECRET=your_jwt_access_secret_key_here
@@ -433,11 +433,11 @@ When implementing new features, refactoring, or extending this repository, **eve
 
 For in-depth specifications, consult the dedicated documentation files:
 
-- [`.ARCHITECTURE.md`](file:///d:/Web%20Devlapment/Cohot_3.0/Projects/team-sync/doc/.ARCHITECTURE.md): Comprehensive system topology, WebSocket engine, Dockerization blueprint, and database indexing.
-- [`PRD.md`](file:///d:/Web%20Devlapment/Cohot_3.0/Projects/team-sync/doc/PRD.md): Product requirements document, user personas, MoSCoW prioritization, and acceptance criteria.
-- [`DESIGN.md`](file:///d:/Web%20Devlapment/Cohot_3.0/Projects/team-sync/doc/DESIGN.md): Visual design specifications, color tokens, typography scales, and component definitions.
-- [`IMAGEKIT_MEDIA_SERVICE.md`](file:///d:/Web%20Devlapment/Cohot_3.0/Projects/team-sync/doc/IMAGEKIT_MEDIA_SERVICE.md): Deep-dive into ImageKit cloud CDN integration, magic bytes detection, and transactional rollback mechanisms.
-- [`TASK.md`](file:///d:/Web%20Devlapment/Cohot_3.0/Projects/team-sync/doc/TASK.md): Production audit log detailing bundle optimization, API deduplication, and UI hierarchy redesign.
+- [`.ARCHITECTURE.md`](file:///d:/Web%20Devlapment/Cohot_3.0/Projects/AgentraTeam/doc/.ARCHITECTURE.md): Comprehensive system topology, WebSocket engine, Dockerization blueprint, and database indexing.
+- [`PRD.md`](file:///d:/Web%20Devlapment/Cohot_3.0/Projects/AgentraTeam/doc/PRD.md): Product requirements document, user personas, MoSCoW prioritization, and acceptance criteria.
+- [`DESIGN.md`](file:///d:/Web%20Devlapment/Cohot_3.0/Projects/AgentraTeam/doc/DESIGN.md): Visual design specifications, color tokens, typography scales, and component definitions.
+- [`IMAGEKIT_MEDIA_SERVICE.md`](file:///d:/Web%20Devlapment/Cohot_3.0/Projects/AgentraTeam/doc/IMAGEKIT_MEDIA_SERVICE.md): Deep-dive into ImageKit cloud CDN integration, magic bytes detection, and transactional rollback mechanisms.
+- [`TASK.md`](file:///d:/Web%20Devlapment/Cohot_3.0/Projects/AgentraTeam/doc/TASK.md): Production audit log detailing bundle optimization, API deduplication, and UI hierarchy redesign.
 
 ---
 

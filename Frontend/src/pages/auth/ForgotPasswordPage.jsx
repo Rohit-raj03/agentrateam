@@ -44,7 +44,7 @@ export const ForgotPasswordPage = () => {
           <Headphones size={13} />
           <span>Having trouble?</span>
           <a
-            href="mailto:support@teamsync.io"
+            href="mailto:support@agentrateam.io"
             className="font-semibold text-slate-600 hover:text-primary hover:underline transition-colors"
           >
             Contact Support

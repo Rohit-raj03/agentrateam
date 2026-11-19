@@ -1,66 +1,59 @@
-import React from 'react';
+import React from "react";
 import {
   LayoutDashboard,
   BarChart3,
   Users,
-
   ShieldCheck,
-
   FolderKanban,
-
-
   ListTodo,
-
   AlertCircle,
   History,
-
   Building2,
-
-
   Shield,
   ArrowLeft,
-} from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { ROUTES } from '../../../shared/constants/routes.js';
+} from "lucide-react";
+import { Link } from "react-router-dom";
+import { ROUTES } from "../../../shared/constants/routes.js";
 
 const ADMIN_NAV_GROUPS = [
   {
-    title: 'Dashboard',
+    title: "Dashboard",
     items: [
-      { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-      { id: 'analytics', label: 'Analytics', icon: BarChart3 },
+      { id: "overview", label: "Overview", icon: LayoutDashboard },
+      { id: "analytics", label: "Analytics", icon: BarChart3 },
     ],
   },
   {
-    title: 'User Management',
+    title: "User Management",
     items: [
-      { id: 'users', label: 'All Users', icon: Users, badge: '8' },
-      { id: 'roles', label: 'Roles & Permissions', icon: ShieldCheck },
+      { id: "users", label: "All Users", icon: Users, badge: "8" },
+      { id: "roles", label: "Roles & Permissions", icon: ShieldCheck },
     ],
   },
   {
-    title: 'Project Management',
+    title: "Project Management",
+    items: [{ id: "projects", label: "All Projects", icon: FolderKanban }],
+  },
+  {
+    title: "Task Management",
     items: [
-      { id: 'projects', label: 'All Projects', icon: FolderKanban },
+      { id: "tasks", label: "All Tasks", icon: ListTodo },
+      {
+        id: "overdue-tasks",
+        label: "Overdue Tasks",
+        icon: AlertCircle,
+        badgeColor: "bg-rose-50 text-rose-600",
+      },
     ],
   },
   {
-    title: 'Task Management',
-    items: [
-      { id: 'tasks', label: 'All Tasks', icon: ListTodo },
-      { id: 'overdue-tasks', label: 'Overdue Tasks', icon: AlertCircle, badgeColor: 'bg-rose-50 text-rose-600' },
-    ],
+    title: "Activity & Audit",
+    items: [{ id: "logs", label: "Activity Logs", icon: History }],
   },
   {
-    title: 'Activity & Audit',
+    title: "Settings",
     items: [
-      { id: 'logs', label: 'Activity Logs', icon: History },
-    ],
-  },
-  {
-    title: 'Settings',
-    items: [
-      { id: 'settings', label: 'Organization Settings', icon: Building2 },
+      { id: "settings", label: "Organization Settings", icon: Building2 },
     ],
   },
 ];
@@ -102,8 +95,11 @@ export const AdminSidebar = ({ activeTab, onSelectTab, overdueCount = 0 }) => {
               {group.items.map((item) => {
                 const Icon = item.icon;
                 const isActive = activeTab === item.id;
-                const isOverdueItem = item.id === 'overdue-tasks';
-                const badgeText = isOverdueItem && overdueCount > 0 ? `${overdueCount}` : item.badge;
+                const isOverdueItem = item.id === "overdue-tasks";
+                const badgeText =
+                  isOverdueItem && overdueCount > 0
+                    ? `${overdueCount}`
+                    : item.badge;
 
                 return (
                   <button
@@ -112,14 +108,14 @@ export const AdminSidebar = ({ activeTab, onSelectTab, overdueCount = 0 }) => {
                     onClick={() => onSelectTab(item.id)}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold transition-all ${
                       isActive
-                        ? 'bg-primary text-white shadow-sm shadow-indigo-200'
-                        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+                        ? "bg-primary text-white shadow-sm shadow-indigo-200"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                     }`}
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <Icon
                         size={15}
-                        className={isActive ? 'text-white' : 'text-slate-400'}
+                        className={isActive ? "text-white" : "text-slate-400"}
                       />
                       <span className="truncate">{item.label}</span>
                     </div>
@@ -128,8 +124,8 @@ export const AdminSidebar = ({ activeTab, onSelectTab, overdueCount = 0 }) => {
                       <span
                         className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full ${
                           isActive
-                            ? 'bg-white/20 text-white'
-                            : item.badgeColor || 'bg-slate-100 text-slate-600'
+                            ? "bg-white/20 text-white"
+                            : item.badgeColor || "bg-slate-100 text-slate-600"
                         }`}
                       >
                         {badgeText}
@@ -156,4 +152,3 @@ export const AdminSidebar = ({ activeTab, onSelectTab, overdueCount = 0 }) => {
     </aside>
   );
 };
-

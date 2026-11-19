@@ -38,8 +38,7 @@ export const TaskTagsInput = ({
     if (projectId && Array.isArray(allProjects)) {
       const match = allProjects.find(
         (p) =>
-          (p.id || p._id) === projectId ||
-          String(p._id) === String(projectId)
+          (p.id || p._id) === projectId || String(p._id) === String(projectId),
       );
       if (match?.themeColor) return match.themeColor;
       if (match?.color) return match.color;
@@ -49,7 +48,7 @@ export const TaskTagsInput = ({
 
   const tokens = useMemo(
     () => deriveProjectColorTokens(resolvedColor),
-    [resolvedColor]
+    [resolvedColor],
   );
 
   const handleAddTag = (tagToAdd) => {
