@@ -20,29 +20,27 @@ export const Navbar = ({ onToggleSidebar }) => {
 
   return (
     <header className="h-20 bg-white px-4 md:px-5 flex items-center justify-between sticky top-0 z-30 border-b border-slate-100/80">
-      {/* Left: Hamburger (shown when sidebar is hidden on < 1024px) + Brand Logo & Title */}
-      <div className="flex items-center gap-2 sm:gap-3 w-auto sm:w-48">
+      {/* Left: Mobile hamburger menu & logo (shown on < 1024px when sidebar is in drawer mode) */}
+      <div className="flex items-center gap-2.5 sm:gap-3 lg:hidden">
         {/* Hamburger Menu Toggle */}
         <button
           onClick={onToggleSidebar}
-          className="lg:hidden p-2 -ml-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors focus:outline-none"
+          className="p-1.5 -ml-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors focus:outline-none"
           title="Toggle Navigation Menu"
           aria-label="Toggle navigation menu"
         >
-          <Menu size={24} strokeWidth={2.2} />
+          <Menu size={22} strokeWidth={2.2} />
         </button>
 
         <img
           src="/CloudAgentra_logo.png"
           alt="AgentraTeam"
-          className="w-10 h-10 object-contain drop-shadow-sm cursor-pointer"
+          className="w-9 h-9 object-contain drop-shadow-sm cursor-pointer transition-transform hover:scale-105"
           onClick={() => navigate(ROUTES.DASHBOARD)}
         />
-        <div className="hidden sm:block">
-          <span className="font-extrabold text-slate-900 text-lg tracking-tight block leading-tight">
-            AgentraTeam
-          </span>
-        </div>
+        <span className="font-extrabold text-slate-900 text-lg tracking-tight hidden sm:inline-block">
+          AgentraTeam
+        </span>
       </div>
 
       {/* Center: Search input with magnifying glass on the RIGHT */}
