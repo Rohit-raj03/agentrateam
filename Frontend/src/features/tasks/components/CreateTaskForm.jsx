@@ -31,6 +31,8 @@ import { useTeam } from "../../team/hooks/useTeam.js";
 import { taskService } from "../services/task.service.js";
 import { formatDateForInput } from "../../../shared/utils/formatDate.js";
 import { Avatar } from "../../../shared/components/ui/Avatar.jsx";
+import { Button } from "../../../shared/components/ui/Button.jsx";
+import { sanitizeSubtasks } from "../utils/taskHelpers.js";
 
 const ESTIMATION_PRESETS = ["2h", "4h", "1d", "2d", "3d", "1w"];
 
@@ -81,6 +83,7 @@ export const CreateTaskForm = ({
   onCancel,
   isSubmitting = false,
   mode,
+  isModal = true,
 }) => {
   const isEditMode =
     mode === "edit" || Boolean(initialData.id || initialData._id);
@@ -207,6 +210,7 @@ export const CreateTaskForm = ({
         );
         const submissionData = {
           ...formData,
+          subtasks: sanitizeSubtasks(formData.subtasks),
           projectId: formData.projectId || null,
           projectName: selectedProj ? selectedProj.name : "Individual Task",
           isIndividual: !formData.projectId,
@@ -245,8 +249,8 @@ export const CreateTaskForm = ({
     setFormData((prev) => ({ ...prev, estimatedTime: preset }));
   };
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+  const formContent = (
+    <>
       {/* Server Error Banner */}
       {serverError && (
         <div className="p-3.5 rounded-2xl bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold flex items-center gap-2.5 animate-in fade-in">
@@ -681,39 +685,67 @@ export const CreateTaskForm = ({
           </div>
         </div>
       </div>
+    </>
+  );
 
-      {/* Form Action Controls Footer */}
-      <div className="pt-6 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
-        {onCancel && (
-          <button
-            type="button"
-            onClick={handleCancel}
-            disabled={submitting}
-            className="w-full sm:w-auto px-6 py-2.5 rounded-2xl border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-100 hover:text-slate-800 transition-colors disabled:opacity-50"
-          >
-            Cancel
-          </button>
-        )}
-
-        <button
-          type="submit"
+  const actionButtons = (
+    <>
+      {onCancel && (
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={handleCancel}
           disabled={submitting}
-          className="w-full sm:w-auto px-8 py-2.5 rounded-2xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-md shadow-indigo-200 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:pointer-events-none"
+          className="w-full sm:w-auto !px-6 !py-2.5 rounded-2xl text-xs font-bold text-slate-600 hover:bg-slate-100 hover:text-slate-800 border-slate-200"
         >
-          {submitting ? (
-            <>
-              <Loader2 size={15} className="animate-spin" />
-              <span>
-                {isEditMode ? "Updating Task..." : "Creating Task..."}
-              </span>
-            </>
-          ) : (
-            <>
-              <Check size={15} strokeWidth={2.5} />
-              <span>{isEditMode ? "Update Task" : "Create Task"}</span>
-            </>
-          )}
-        </button>
+          Cancel
+        </Button>
+      )}
+
+      <Button
+        type="submit"
+        variant="primary"
+        disabled={submitting}
+        className="w-full sm:w-auto !px-8 !py-2.5 rounded-2xl text-xs font-bold shadow-md shadow-indigo-200 flex items-center justify-center gap-2"
+      >
+        {submitting ? (
+          <>
+            <Loader2 size={15} className="animate-spin mr-1" />
+            <span>
+              {isEditMode ? "Updating Task..." : "Creating Task..."}
+            </span>
+          </>
+        ) : (
+          <>
+            <Check size={15} strokeWidth={2.5} className="mr-1" />
+            <span>{isEditMode ? "Update Task" : "Create Task"}</span>
+          </>
+        )}
+      </Button>
+    </>
+  );
+
+  if (isModal) {
+    return (
+      <form
+        onSubmit={handleSubmit}
+        className="flex flex-col flex-1 min-h-0 h-full overflow-hidden"
+      >
+        <div className="flex-1 min-h-0 overflow-y-auto px-5 sm:px-6 py-4 sm:py-5 space-y-6 overscroll-contain">
+          {formContent}
+        </div>
+        <div className="shrink-0 px-6 py-3.5 sm:py-4 bg-white border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-3 z-10 shadow-[0_-4px_16px_rgba(0,0,0,0.03)]">
+          {actionButtons}
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-6">
+      {formContent}
+      <div className="pt-6 border-t border-slate-100 flex flex-col-reverse sm:flex-row items-center justify-end gap-3">
+        {actionButtons}
       </div>
     </form>
   );

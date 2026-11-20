@@ -81,6 +81,7 @@ export const CreateTaskPage = () => {
           onSubmit={handleSubmit}
           onCancel={handleCancel}
           isSubmitting={isSubmitting}
+          isModal={false}
         />
       </Card>
     </div>

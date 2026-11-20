@@ -10,6 +10,7 @@ import {
   Trash2,
   Loader2,
 } from "lucide-react";
+import { Button } from "../../../../shared/components/ui/Button.jsx";
 import { TaskAttachmentsUploader } from "../TaskAttachmentsUploader.jsx";
 import {
   formatFileSize,
@@ -17,9 +18,17 @@ import {
   getDocumentBadge,
 } from "../../utils/attachmentHelpers.js";
 
+/**
+ * Feature Subcomponent: TaskAttachmentsSection
+ * Layer: features/tasks/components/task-details/
+ * Responsibility: Task attachments section in Task Details modal/page.
+ * - Default View Mode: Read-only presentation of attached files with preview and download actions.
+ * - Edit Mode: Allows uploading new attachments and deleting existing ones.
+ */
 export const TaskAttachmentsSection = ({
   taskId,
   attachments = [],
+  isEditing = false,
   canAttachFiles = false,
   canRemoveAttachment,
   onAttachmentsChange,
@@ -67,22 +76,25 @@ export const TaskAttachmentsSection = ({
           </span>
         </div>
 
-        {canAttachFiles && (
-          <button
+        {/* Upload toggle only visible in edit mode */}
+        {isEditing && canAttachFiles && (
+          <Button
             type="button"
+            variant="ghost"
+            size="sm"
             onClick={() => setIsUploaderOpen((prev) => !prev)}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:text-primary-hover transition-colors cursor-pointer"
+            className="!px-2 !py-1 text-xs font-bold text-primary hover:text-primary-hover hover:bg-indigo-50"
           >
-            <Plus size={13} />
+            <Plus size={13} className="mr-1" />
             <span>
               {isUploaderOpen ? "Close Uploader" : "Add Attachments"}
             </span>
-          </button>
+          </Button>
         )}
       </div>
 
-      {/* Inline Attachment Uploader for Direct Uploads to this Task */}
-      {isUploaderOpen && (
+      {/* Inline Attachment Uploader only in edit mode */}
+      {isEditing && isUploaderOpen && (
         <div className="p-3.5 bg-white rounded-2xl border border-indigo-100 shadow-xs animate-in fade-in duration-150">
           <TaskAttachmentsUploader
             taskId={taskId}
@@ -108,7 +120,7 @@ export const TaskAttachmentsSection = ({
               file.size ||
               (file.fileSize ? formatFileSize(file.fileSize) : "");
             const isRemoving = removingAttachmentId === fileId;
-            const canRemove = canRemoveAttachment?.(file);
+            const canRemove = isEditing && canRemoveAttachment?.(file);
 
             return (
               <div
@@ -179,7 +191,7 @@ export const TaskAttachmentsSection = ({
                   </div>
                 </div>
 
-                {/* Actions: Open, Download & Remove */}
+                {/* Actions: View & Download always; Delete only in edit mode */}
                 <div className="flex items-center gap-1 shrink-0 ml-2">
                   {fileUrl ? (
                     <>
@@ -193,15 +205,17 @@ export const TaskAttachmentsSection = ({
                       >
                         <ExternalLink size={13} />
                       </a>
-                      <button
+                      <Button
                         type="button"
+                        variant="ghost"
+                        size="sm"
                         onClick={(e) => handleDownload(fileUrl, fileName, e)}
-                        className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-indigo-50 transition-colors cursor-pointer"
+                        className="!p-1.5 text-slate-400 hover:text-primary hover:bg-indigo-50"
                         title={`Download ${fileName}`}
                         aria-label={`Download ${fileName}`}
                       >
                         <Download size={13} />
-                      </button>
+                      </Button>
                     </>
                   ) : (
                     <span
@@ -213,11 +227,13 @@ export const TaskAttachmentsSection = ({
                   )}
 
                   {canRemove && (
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
+                      size="sm"
                       onClick={(e) => onRemoveAttachment?.(file, e)}
                       disabled={isRemoving}
-                      className="p-1.5 rounded-lg text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-colors disabled:opacity-50 cursor-pointer"
+                      className="!p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 disabled:opacity-50"
                       title={`Remove ${fileName}`}
                       aria-label={`Remove ${fileName}`}
                     >
@@ -229,7 +245,7 @@ export const TaskAttachmentsSection = ({
                       ) : (
                         <Trash2 size={13} />
                       )}
-                    </button>
+                    </Button>
                   )}
                 </div>
               </div>
@@ -237,23 +253,11 @@ export const TaskAttachmentsSection = ({
           })}
         </div>
       ) : (
-        !isUploaderOpen && (
-          <div className="p-4 bg-white rounded-xl text-center border border-dashed border-slate-200">
-            <p className="text-xs text-slate-400 font-medium">
-              No attachments uploaded for this task.
-            </p>
-            {canAttachFiles && (
-              <button
-                type="button"
-                onClick={() => setIsUploaderOpen(true)}
-                className="text-xs font-bold text-primary hover:underline mt-1 inline-flex items-center gap-1 cursor-pointer"
-              >
-                <Plus size={12} />
-                <span>Attach resources now</span>
-              </button>
-            )}
-          </div>
-        )
+        <div className="p-4 bg-white rounded-xl text-center border border-dashed border-slate-200">
+          <p className="text-xs text-slate-400 font-medium">
+            No attachments uploaded for this task.
+          </p>
+        </div>
       )}
     </div>
   );

@@ -5,7 +5,6 @@ import { useTasks } from "../hooks/useTasks.js";
 import { updateTask as updateTaskAction } from "../store/taskSlice.js";
 import { useAuth } from "../../auth/hooks/useAuth.js";
 import { taskService } from "../services/task.service.js";
-import { showToast } from "../../../shared/utils/toast.js";
 import { useTeam } from "../../team/hooks/useTeam.js";
 import { useProjects } from "../../projects/hooks/useProjects.js";
 import { TaskComments } from "./TaskComments.jsx";
@@ -18,12 +17,12 @@ import { TaskSubtasksSection } from "./task-details/TaskSubtasksSection.jsx";
 import { TaskAttachmentsSection } from "./task-details/TaskAttachmentsSection.jsx";
 import { TaskMetadataSection } from "./task-details/TaskMetadataSection.jsx";
 
-const getSubtaskId = (sub, idx) => sub?.id || sub?._id || `st-${idx}`;
-
 /**
  * Feature Component: TaskDetails
  * Layer: features/tasks/components/
- * Responsibility: Complete interactive task overview enabling inline subtask ticking, employee/assignee additions and removals, status transitions, metadata editing, @mentions, and real-time discussion comments.
+ * Responsibility: Complete Task Overview component.
+ * - Default View Mode: 100% read-only display. Users can only view task details without inline mutation controls.
+ * - Edit Mode: Clicking the "Edit" button opens the Create/Update Task modal with all existing task data automatically pre-filled.
  */
 export const TaskDetails = ({
   task: initialTask,
@@ -41,7 +40,16 @@ export const TaskDetails = ({
   const [loadingTask, setLoadingTask] = useState(false);
   const [fetchedTask, setFetchedTask] = useState(null);
 
-  // Retrieve the live reactive task from Redux store or locally fetched fallback
+  // Edit & Delete modal states
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
+
+  // Attachment preview lightbox
+  const [previewModalUrl, setPreviewModalUrl] = useState(null);
+
+  // Retrieve live reactive task from Redux store or locally fetched fallback
   const currentId = taskId || initialTask?.id || initialTask?._id;
   const reduxTask = allTasks.find(
     (t) => t.id === currentId || t._id === currentId
@@ -86,16 +94,6 @@ export const TaskDetails = ({
         }))
       : teamMembers);
 
-  // Attachment preview & deletion state
-  const [previewModalUrl, setPreviewModalUrl] = useState(null);
-  const [removingAttachmentId, setRemovingAttachmentId] = useState(null);
-
-  // Edit & Delete modal states
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
-  const [deleteError, setDeleteError] = useState("");
-
   // Current authenticated user for RBAC permission enforcement
   const { user: currentUser } = useAuth();
   const currentUserId = (currentUser?._id || currentUser?.id)?.toString();
@@ -115,275 +113,10 @@ export const TaskDetails = ({
         (project.owner?._id || project.owner)?.toString() === currentUserId ||
         project.canManageProject?.(currentUser?._id, currentUser?.role))
   );
-  const isAssignee = (task?.assignees || []).some((a) => {
-    const aId = (a?._id || a?.id || a)?.toString();
-    return aId === currentUserId;
-  });
-  const isProjectMember = Boolean(
-    project?.members?.some((m) => {
-      const mId = (m?.id || m?._id || m?.user?._id || m?.user)?.toString();
-      return mId === currentUserId;
-    })
-  );
 
   const canManageTask = isAdmin || isCreator || isProjectManager;
-  // Assignees, creators, managers, and project members can attach resources
-  const canAttachFiles = canManageTask || isAssignee || isProjectMember;
 
-  const canRemoveAttachment = (attachment) => {
-    if (canManageTask) return true;
-    const uploaderId = (
-      attachment?.uploadedBy?._id ||
-      attachment?.uploadedBy?.id ||
-      attachment?.uploadedBy
-    )?.toString();
-    return Boolean(uploaderId && currentUserId && uploaderId === currentUserId);
-  };
-
-  if (loadingTask && !task) {
-    return (
-      <div className="flex flex-col items-center justify-center p-12 space-y-3">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-        <p className="text-xs text-slate-500 font-medium">
-          Loading task overview...
-        </p>
-      </div>
-    );
-  }
-
-  if (!task) return null;
-
-  // 1. SUBTASK TICKING / TOGGLE
-  const handleToggleSubtask = (subtaskId, e) => {
-    e?.stopPropagation?.();
-    const currentSubtasks = task.subtasks || [];
-    const updatedSubtasks = currentSubtasks.map((sub, idx) => {
-      const sId = getSubtaskId(sub, idx);
-      return sId === subtaskId ? { ...sub, completed: !sub.completed } : sub;
-    });
-
-    const updatedTask = {
-      ...task,
-      subtasks: updatedSubtasks,
-    };
-
-    updateTask(updatedTask, { silent: true });
-    onUpdate?.(updatedTask);
-  };
-
-  // 2. ADD SUBTASK
-  const handleAddSubtask = (title) => {
-    if (!title?.trim()) return;
-
-    const newSubtask = {
-      id: `st-${Date.now()}`,
-      title: title.trim(),
-      completed: false,
-    };
-
-    const updatedTask = {
-      ...task,
-      subtasks: [...(task.subtasks || []), newSubtask],
-    };
-
-    updateTask(updatedTask);
-    onUpdate?.(updatedTask);
-  };
-
-  // 3. REMOVE SUBTASK
-  const handleRemoveSubtask = (subtaskId, e) => {
-    e?.stopPropagation?.();
-    const currentSubtasks = task.subtasks || [];
-    const updatedSubtasks = currentSubtasks.filter(
-      (s, idx) => getSubtaskId(s, idx) !== subtaskId
-    );
-
-    const updatedTask = {
-      ...task,
-      subtasks: updatedSubtasks,
-    };
-
-    updateTask(updatedTask, { silent: true });
-    onUpdate?.(updatedTask);
-  };
-
-  // 3b. UPDATE SUBTASK TITLE
-  const handleUpdateSubtaskTitle = (subtaskId, newTitle, e) => {
-    e?.stopPropagation?.();
-    if (!newTitle || !newTitle.trim()) return;
-
-    const currentSubtasks = task.subtasks || [];
-    const updatedSubtasks = currentSubtasks.map((sub, idx) => {
-      const sId = getSubtaskId(sub, idx);
-      return sId === subtaskId ? { ...sub, title: newTitle.trim() } : sub;
-    });
-
-    const updatedTask = {
-      ...task,
-      subtasks: updatedSubtasks,
-    };
-
-    updateTask(updatedTask, { silent: true });
-    onUpdate?.(updatedTask);
-  };
-
-  // 4. EMPLOYEE / ASSIGNEE EDITING (TOGGLE ASSIGNEE)
-  const handleToggleAssignee = (member) => {
-    const currentAssignees = task.assignees || [];
-    const exists = currentAssignees.some(
-      (a) => (a.id || a._id) === (member.id || member._id)
-    );
-
-    let updatedAssignees;
-    if (exists) {
-      updatedAssignees = currentAssignees.filter(
-        (a) => (a.id || a._id) !== (member.id || member._id)
-      );
-    } else {
-      updatedAssignees = [
-        ...currentAssignees,
-        {
-          id: member.id || member._id,
-          _id: member.id || member._id,
-          name: member.name,
-          username: member.username,
-          role: member.role || member.projectRole,
-          avatar: member.avatar,
-        },
-      ];
-    }
-
-    const updatedAssignedTo =
-      updatedAssignees.length > 0
-        ? updatedAssignees.map((a) => a.name).join(", ")
-        : "Unassigned";
-
-    const updatedTask = {
-      ...task,
-      assignees: updatedAssignees,
-      assignedTo: updatedAssignedTo,
-    };
-
-    updateTask(updatedTask);
-    onUpdate?.(updatedTask);
-  };
-
-  // 5. ATOMIC UPDATE OF ALL ASSIGNEES
-  const handleUpdateAssignees = (updatedAssignees) => {
-    const updatedAssignedTo =
-      updatedAssignees.length > 0
-        ? updatedAssignees.map((a) => a.name).join(", ")
-        : "Unassigned";
-
-    const updatedTask = {
-      ...task,
-      assignees: updatedAssignees,
-      assignedTo: updatedAssignedTo,
-    };
-
-    updateTask(updatedTask);
-    onUpdate?.(updatedTask);
-  };
-
-  // 6. QUICK REMOVE SINGLE ASSIGNEE
-  const handleRemoveAssignee = (memberId, e) => {
-    e?.stopPropagation?.();
-    const updatedAssignees = (task.assignees || []).filter(
-      (a) => (a.id || a._id) !== memberId
-    );
-    const updatedAssignedTo =
-      updatedAssignees.length > 0
-        ? updatedAssignees.map((a) => a.name).join(", ")
-        : "Unassigned";
-
-    const updatedTask = {
-      ...task,
-      assignees: updatedAssignees,
-      assignedTo: updatedAssignedTo,
-    };
-
-    updateTask(updatedTask);
-    onUpdate?.(updatedTask);
-  };
-
-  // 6. QUICK STATUS CHANGE
-  const handleStatusChange = (newStatus) => {
-    const updatedTask = {
-      ...task,
-      status: newStatus,
-    };
-    updateTask(updatedTask);
-    onUpdate?.(updatedTask);
-  };
-
-  // 7. QUICK PRIORITY CHANGE
-  const handlePriorityChange = (newPriority) => {
-    const updatedTask = {
-      ...task,
-      priority: newPriority,
-    };
-    updateTask(updatedTask);
-    onUpdate?.(updatedTask);
-  };
-
-  // 8. SAVE EDITED TITLE & DESCRIPTION
-  const handleSaveMeta = (meta) => {
-    const updatedTask = {
-      ...task,
-      ...meta,
-    };
-    updateTask(updatedTask);
-    onUpdate?.(updatedTask);
-  };
-
-  // 9. REMOVE ATTACHMENT FROM OVERVIEW
-  const handleRemoveTaskAttachment = async (attachment, e) => {
-    e?.stopPropagation?.();
-    const attId = attachment.fileId || attachment._id || attachment.id;
-    if (!attId) return;
-
-    if (!canRemoveAttachment(attachment)) {
-      showToast.error("You are not authorized to remove this attachment.");
-      return;
-    }
-
-    setRemovingAttachmentId(attId);
-    try {
-      const taskIdVal = task.id || task._id || currentId;
-      const res = await taskService.deleteTaskAttachment(taskIdVal, attId);
-      const updatedAttachments =
-        res?.attachments ||
-        (task.attachments || []).filter(
-          (a) => (a.fileId || a._id || a.id) !== attId
-        );
-
-      const updatedTask = {
-        ...task,
-        attachments: updatedAttachments,
-      };
-
-      dispatch(updateTaskAction(updatedTask));
-      onUpdate?.(updatedTask);
-      showToast.attachments.removed();
-    } catch (err) {
-      console.error("Failed to delete attachment:", err);
-      showToast.attachments.removeFailed(err);
-    } finally {
-      setRemovingAttachmentId(null);
-    }
-  };
-
-  // 10. REAL-TIME ATTACHMENT SYNC
-  const handleAttachmentsChange = (newAttachments) => {
-    const updatedTask = {
-      ...task,
-      attachments: newAttachments,
-    };
-    dispatch(updateTaskAction(updatedTask));
-    onUpdate?.(updatedTask);
-  };
-
-  // 11. TASK DELETION CONFIRMATION
+  // Task deletion handler
   const handleDeleteConfirm = async (reason) => {
     setIsDeleting(true);
     setDeleteError("");
@@ -405,16 +138,59 @@ export const TaskDetails = ({
     }
   };
 
+  if (loadingTask && !task) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-xs text-slate-500 font-medium">
+          Loading task overview...
+        </p>
+      </div>
+    );
+  }
+
+  if (!task) return null;
+
+  // Fully resolved initial data for the Create/Update Task modal form
+  const resolvedProjectId =
+    task?.projectId ||
+    task?.project?._id ||
+    task?.project?.id ||
+    (typeof task?.project === "string" ? task.project : "") ||
+    project?.id ||
+    project?._id ||
+    "";
+
+  const editInitialData = {
+    ...task,
+    id: task.id || task._id || currentId,
+    _id: task._id || task.id || currentId,
+    projectId: resolvedProjectId,
+    projectName:
+      task.projectName ||
+      project?.name ||
+      (typeof task.project === "object" ? task.project?.name : ""),
+    title: task.title || "",
+    description: task.description || "",
+    status: task.status || "TO_DO",
+    priority: task.priority || "MEDIUM",
+    startDate: task.startDate || "",
+    dueDate: task.dueDate || "",
+    estimatedTime: task.estimatedTime || "8h",
+    assignees: Array.isArray(task.assignees) ? task.assignees : [],
+    subtasks: Array.isArray(task.subtasks) ? task.subtasks : [],
+    attachments: Array.isArray(task.attachments) ? task.attachments : [],
+    tags: Array.isArray(task.tags) ? task.tags : [],
+    comment: task.comment || "",
+  };
+
   return (
     <div className="space-y-6">
-      {/* 1. Header with Status, Priority, Edit, Delete, Title, Description, Dates & Creator */}
+      {/* 1. Header with Static Status, Static Priority, Project Name, Title, Dates & Edit/Delete Buttons */}
       <TaskHeaderMeta
         task={task}
         project={project}
-        effectiveMembers={effectiveMembers}
-        onStatusChange={handleStatusChange}
-        onPriorityChange={handlePriorityChange}
-        onSaveMeta={handleSaveMeta}
+        canManageTask={canManageTask}
         onOpenEditModal={() => setIsEditModalOpen(true)}
         onOpenDeleteModal={() => {
           setDeleteError("");
@@ -422,34 +198,26 @@ export const TaskDetails = ({
         }}
       />
 
-      {/* 2. Employee / Assignees Section */}
+      {/* 2. Employee / Assignees Section (Read-Only) */}
       <TaskAssigneeSection
         assignees={task.assignees || []}
         effectiveMembers={effectiveMembers}
-        onUpdateAssignees={handleUpdateAssignees}
-        onToggleAssignee={handleToggleAssignee}
-        onRemoveAssignee={handleRemoveAssignee}
+        isEditing={false}
       />
 
-      {/* 3. Subtasks Checklist */}
+      {/* 3. Subtasks Checklist (Read-Only) */}
       <TaskSubtasksSection
         subtasks={task.subtasks || []}
-        onToggleSubtask={handleToggleSubtask}
-        onAddSubtask={handleAddSubtask}
-        onRemoveSubtask={handleRemoveSubtask}
-        onUpdateSubtaskTitle={handleUpdateSubtaskTitle}
+        isEditing={false}
       />
 
-      {/* 4. Attachments Section */}
+      {/* 4. Attachments Section (Read-Only with Lightbox Preview & Download) */}
       <TaskAttachmentsSection
         taskId={task.id || task._id || currentId}
         attachments={task.attachments || []}
-        canAttachFiles={canAttachFiles}
-        canRemoveAttachment={canRemoveAttachment}
-        onAttachmentsChange={handleAttachmentsChange}
-        onRemoveAttachment={handleRemoveTaskAttachment}
+        isEditing={false}
+        canAttachFiles={false}
         onPreview={setPreviewModalUrl}
-        removingAttachmentId={removingAttachmentId}
       />
 
       {/* 5. Metadata (Tags & Handover Notes) */}
@@ -466,27 +234,24 @@ export const TaskDetails = ({
         projectMembers={effectiveMembers}
       />
 
-      {/* 7. Comprehensive Update Task Modal */}
+      {/* 7. Full Create/Update Task Modal (Pre-populated automatically on Edit click) */}
       <CreateTaskModal
         isOpen={isEditModalOpen}
         onClose={() => setIsEditModalOpen(false)}
-        initialData={{
-          ...task,
-          id: task.id || task._id,
-          _id: task._id || task.id,
-          projectId: task.projectId || task.project?._id || task.project || "",
-        }}
+        initialData={editInitialData}
         title="Update Task"
         subtitle="Update overall task details, workflow status, assignees, and checklist."
         onSubmit={async (data) => {
           const updated = {
             ...task,
             ...data,
-            id: task.id || task._id,
-            _id: task._id || task.id,
+            id: task.id || task._id || currentId,
+            _id: task._id || task.id || currentId,
           };
           const res = await updateTask(updated);
-          onUpdate?.(res || updated);
+          const finalUpdated = res?.task || res?.data || res || updated;
+          setFetchedTask(finalUpdated);
+          onUpdate?.(finalUpdated);
           setIsEditModalOpen(false);
         }}
       />

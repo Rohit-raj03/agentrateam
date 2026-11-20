@@ -107,6 +107,18 @@ export const Modal = ({
 
   if (!isOpen) return null;
 
+  const hasCustomPadding = /\bp-\d+\b/.test(bodyClassName);
+  const hasCustomOverflow = /\boverflow-\w+\b/.test(bodyClassName);
+
+  const bodyWrapperClasses = [
+    "flex-1 min-h-0",
+    !hasCustomOverflow && "overflow-y-auto overscroll-contain",
+    !hasCustomPadding && "p-4 sm:p-6",
+    bodyClassName,
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <div
       role="dialog"
@@ -154,9 +166,7 @@ export const Modal = ({
               </button>
             </div>
           ))}
-        <div
-          className={`p-4 sm:p-6 overflow-y-auto flex-1 overscroll-contain ${bodyClassName}`}
-        >
+        <div className={bodyWrapperClasses}>
           {children}
         </div>
       </div>

@@ -26,7 +26,6 @@ export const TaskSubtasksList = ({ subtasks = [], onChange }) => {
 
     const newItem = {
       id: `st-${Date.now()}`,
-      _id: `st-${Date.now()}`,
       title: newSubtaskTitle.trim(),
       completed: false,
     };

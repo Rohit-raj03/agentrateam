@@ -6,7 +6,7 @@ import { CreateTaskForm } from "./CreateTaskForm.jsx";
 /**
  * Feature Component: CreateTaskModal
  * Layer: features/tasks/components/
- * Responsibility: Modal dialog container for creating or updating tasks anywhere in the app with backdrop, exit keys, and responsive scrolling.
+ * Responsibility: Modal dialog container for creating or updating tasks anywhere in the app with backdrop, exit keys, scrollable body, and fixed bottom action bar.
  * Wraps canonical Modal.
  */
 export const CreateTaskModal = ({
@@ -32,7 +32,7 @@ export const CreateTaskModal = ({
           ? "Update overall task details, workflow status, assignees, and checklist."
           : "Add an actionable item to your team's workflow and assign contributors.")
       }
-      bodyClassName="p-6 overflow-y-auto"
+      bodyClassName="p-0 overflow-hidden flex flex-col"
       icon={
         <div className="w-9 h-9 rounded-xl bg-indigo-50 text-primary flex items-center justify-center shrink-0">
           <Sparkles size={18} />
@@ -42,6 +42,7 @@ export const CreateTaskModal = ({
       <CreateTaskForm
         initialData={initialData}
         mode={isEditMode ? "edit" : "create"}
+        isModal={true}
         onSubmit={async (data) => {
           await onSubmit?.(data);
           onClose?.();
