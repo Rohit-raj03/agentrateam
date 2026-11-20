@@ -5,6 +5,7 @@ import {
   FileText,
   CheckCircle2,
   ExternalLink,
+  Download,
   Trash2,
 } from "lucide-react";
 import {
@@ -26,6 +27,32 @@ export const AttachmentItem = ({
   const badge = getDocumentBadge(fileName);
   const formattedSize =
     file.size || (file.fileSize ? formatFileSize(file.fileSize) : "");
+
+  const handleDownload = async (e) => {
+    e?.stopPropagation?.();
+    if (!fileUrl) return;
+    try {
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName || "attachment";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch {
+      const link = document.createElement("a");
+      link.href = fileUrl;
+      link.download = fileName || "attachment";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
   return (
     <div
@@ -96,16 +123,27 @@ export const AttachmentItem = ({
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0 ml-2">
         {fileUrl && (
-          <a
-            href={fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-indigo-50 transition-colors"
-            title="Open attachment in new tab"
-            aria-label={`Open ${fileName}`}
-          >
-            <ExternalLink size={13} />
-          </a>
+          <>
+            <a
+              href={fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-indigo-50 transition-colors"
+              title="Open attachment in new tab"
+              aria-label={`Open ${fileName}`}
+            >
+              <ExternalLink size={13} />
+            </a>
+            <button
+              type="button"
+              onClick={handleDownload}
+              className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-indigo-50 transition-colors cursor-pointer"
+              title={`Download ${fileName}`}
+              aria-label={`Download ${fileName}`}
+            >
+              <Download size={13} />
+            </button>
+          </>
         )}
 
         {!disabled && (

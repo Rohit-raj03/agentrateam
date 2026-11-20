@@ -23,6 +23,7 @@ import { MentionRenderer } from "../MentionRenderer.jsx";
 
 export const TaskHeaderMeta = ({
   task,
+  project,
   effectiveMembers = [],
   onStatusChange,
   onPriorityChange,
@@ -33,6 +34,16 @@ export const TaskHeaderMeta = ({
   const [isStatusMenuOpen, setIsStatusMenuOpen] = useState(false);
   const [isPriorityMenuOpen, setIsPriorityMenuOpen] = useState(false);
   const [isEditingMeta, setIsEditingMeta] = useState(false);
+
+  const projectName =
+    task?.projectName ||
+    project?.name ||
+    (typeof task?.project === "object" ? task?.project?.name : null);
+
+  const isIndividual =
+    task?.isIndividual ||
+    (!task?.project && !task?.projectId && !project) ||
+    projectName === "Individual Task";
 
   const [editTitle, setEditTitle] = useState(task?.title || "");
   const [editDescription, setEditDescription] = useState(
@@ -162,44 +173,26 @@ export const TaskHeaderMeta = ({
           </div>
         </div>
 
-        {/* Project Name + Edit & Delete Action Buttons */}
-        <div className="flex items-center gap-3">
-          {task.isIndividual ||
-          (!task.project && !task.projectId) ||
-          task.projectName === "Individual Task" ? (
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-100 px-2.5 py-1 rounded-xl">
-              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
-              <span>Self / Individual Task</span>
-            </div>
-          ) : (
-            task.projectName && (
-              <div className="flex items-center gap-1.5 text-xs text-slate-500 font-medium">
-                <FolderKanban size={13} className="text-primary" />
-                <span>{task.projectName}</span>
-              </div>
-            )
-          )}
+        {/* Action Buttons */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onOpenEditModal}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-primary border border-indigo-100 transition-colors cursor-pointer shadow-2xs"
+          >
+            <Edit2 size={13} />
+            <span>Edit Task</span>
+          </button>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onOpenEditModal}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-xs font-bold text-primary border border-indigo-100 transition-colors cursor-pointer shadow-2xs"
-            >
-              <Edit2 size={13} />
-              <span>Edit Task</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={onOpenDeleteModal}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-xs font-bold text-rose-600 border border-rose-100 transition-colors cursor-pointer shadow-2xs"
-              title="Delete task with mandatory reason"
-            >
-              <Trash2 size={13} />
-              <span>Delete</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onOpenDeleteModal}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-50 hover:bg-rose-100 text-xs font-bold text-rose-600 border border-rose-100 transition-colors cursor-pointer shadow-2xs"
+            title="Delete task with mandatory reason"
+          >
+            <Trash2 size={13} />
+            <span>Delete</span>
+          </button>
         </div>
       </div>
 
@@ -207,6 +200,12 @@ export const TaskHeaderMeta = ({
       {isEditingMeta ? (
         <div className="space-y-3 p-4 bg-slate-50 rounded-2xl border border-slate-200/90 animate-in fade-in duration-150">
           <div>
+            {task.projectName && (
+              <div className="flex items-center gap-1.5 text-xs font-medium text-slate-400 mb-1.5">
+                <FolderKanban size={12} className="text-primary/70" />
+                <span>{task.projectName}</span>
+              </div>
+            )}
             <label className="block text-[11px] font-bold uppercase text-slate-500 mb-1">
               Task Title
             </label>
@@ -278,11 +277,27 @@ export const TaskHeaderMeta = ({
           </div>
         </div>
       ) : (
-        <div>
-          <h2 className="text-xl font-bold text-slate-900 leading-snug">
+        <div className="space-y-1">
+          {/* Contextual Project Subtitle Label directly above the task title */}
+          {isIndividual ? (
+            <div className="inline-flex items-center gap-1.5 text-xs font-semibold text-purple-700 bg-purple-50 border border-purple-100 px-2.5 py-0.5 rounded-lg">
+              <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+              <span>Self / Individual Task</span>
+            </div>
+          ) : (
+            projectName && (
+              <div className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 tracking-wide">
+                <FolderKanban size={13} className="text-primary/80 shrink-0" />
+                <span className="truncate">{projectName}</span>
+              </div>
+            )
+          )}
+
+          <h2 className="text-xl font-bold text-slate-900 leading-snug tracking-tight">
             {task.title}
           </h2>
-          <div className="text-xs text-slate-600 mt-2 leading-relaxed whitespace-pre-line">
+
+          <div className="text-xs text-slate-600 pt-1 leading-relaxed whitespace-pre-line">
             {task.description ? (
               <MentionRenderer text={task.description} />
             ) : (

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import React, { useEffect, useRef } from "react";
+import { X } from "lucide-react";
 
 /**
  * Shared Canonical UI Primitive: Modal
@@ -14,9 +14,9 @@ export const Modal = ({
   subtitle,
   icon,
   children,
-  maxWidth = 'max-w-md',
-  headerClassName = '',
-  bodyClassName = '',
+  maxWidth = "max-w-md",
+  headerClassName = "",
+  bodyClassName = "",
   customHeader = null,
   showHeader = true,
   ariaLabel,
@@ -28,15 +28,15 @@ export const Modal = ({
     if (!isOpen) return;
 
     previouslyFocusedElementRef.current = document.activeElement;
-    document.body.style.overflow = 'hidden';
+    document.body.style.overflow = "hidden";
 
     const getFocusableElements = () => {
       if (!modalRef.current) return [];
       const focusableSelector =
         'a[href], button:not([disabled]), textarea:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])';
-      return Array.from(modalRef.current.querySelectorAll(focusableSelector)).filter(
-        (el) => el.offsetParent !== null
-      );
+      return Array.from(
+        modalRef.current.querySelectorAll(focusableSelector),
+      ).filter((el) => el.offsetParent !== null);
     };
 
     // Auto-focus the first element or dialog container
@@ -50,13 +50,13 @@ export const Modal = ({
     }, 50);
 
     const handleKeyDown = (e) => {
-      if (e.key === 'Escape') {
+      if (e.key === "Escape") {
         e.stopPropagation();
         onClose?.();
         return;
       }
 
-      if (e.key === 'Tab') {
+      if (e.key === "Tab") {
         const focusable = getFocusableElements();
         if (focusable.length === 0) {
           e.preventDefault();
@@ -67,12 +67,18 @@ export const Modal = ({
         const last = focusable[focusable.length - 1];
 
         if (e.shiftKey) {
-          if (document.activeElement === first || !modalRef.current.contains(document.activeElement)) {
+          if (
+            document.activeElement === first ||
+            !modalRef.current.contains(document.activeElement)
+          ) {
             e.preventDefault();
             last.focus();
           }
         } else {
-          if (document.activeElement === last || !modalRef.current.contains(document.activeElement)) {
+          if (
+            document.activeElement === last ||
+            !modalRef.current.contains(document.activeElement)
+          ) {
             e.preventDefault();
             first.focus();
           }
@@ -80,13 +86,16 @@ export const Modal = ({
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
 
     return () => {
       clearTimeout(timer);
-      document.body.style.overflow = 'unset';
-      window.removeEventListener('keydown', handleKeyDown);
-      if (previouslyFocusedElementRef.current && typeof previouslyFocusedElementRef.current.focus === 'function') {
+      document.body.style.overflow = "unset";
+      window.removeEventListener("keydown", handleKeyDown);
+      if (
+        previouslyFocusedElementRef.current &&
+        typeof previouslyFocusedElementRef.current.focus === "function"
+      ) {
         try {
           previouslyFocusedElementRef.current.focus();
         } catch {
@@ -102,7 +111,9 @@ export const Modal = ({
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={ariaLabel || (typeof title === 'string' ? title : 'Modal Dialog')}
+      aria-label={
+        ariaLabel || (typeof title === "string" ? title : "Modal Dialog")
+      }
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose?.();
       }}
@@ -136,7 +147,7 @@ export const Modal = ({
               <button
                 type="button"
                 onClick={onClose}
-                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer shrink-0 ml-3"
+                className="p-1.5 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-100 transition-colors cursor-pointer shrink-0 ml-3"
                 aria-label="Close dialog"
               >
                 <X size={18} />

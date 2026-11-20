@@ -100,20 +100,6 @@ export const RegisterForm = () => {
           showPasswordToggle={true}
           error={errors.password}
         />
-        <div className="space-y-1">
-          <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider">
-            Account Role
-          </label>
-          <select
-            name="role"
-            value={values.role || "user"}
-            onChange={handleChange}
-            className="w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold text-slate-800 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all cursor-pointer"
-          >
-            <option value="user">Team Member (Standard)</option>
-            <option value="admin">Administrator (Full Access)</option>
-          </select>
-        </div>
         <Button
           type="submit"
           className="w-full bg-primary hover:bg-primary-hover"

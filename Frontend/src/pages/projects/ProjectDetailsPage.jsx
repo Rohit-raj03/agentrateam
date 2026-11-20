@@ -1,31 +1,26 @@
 import React, { useState } from "react";
-// Redux dispatch not required; handled via hooks
 import { useParams, useNavigate, Link } from "react-router-dom";
 import {
   ArrowLeft,
-
   FolderKanban,
-
-
   Plus,
   Edit3,
-
   ChevronRight,
-
   Trash2,
 } from "lucide-react";
 
 import { Badge } from "../../shared/components/ui/Badge.jsx";
+import { Button } from "../../shared/components/ui/Button.jsx";
 import { Modal } from "../../shared/components/ui/Modal.jsx";
 import { ProjectMembers } from "../../features/projects/components/ProjectMembers.jsx";
 import { ProjectTaskList } from "../../features/projects/components/ProjectTaskList.jsx";
 
 import { CreateProjectModal } from "../../features/projects/components/CreateProjectModal.jsx";
+import { DeleteProjectModal } from "../../features/projects/components/DeleteProjectModal.jsx";
 import { CreateTaskModal } from "../../features/tasks/components/CreateTaskModal.jsx";
 import { TaskDetails } from "../../features/tasks/components/TaskDetails.jsx";
 import { useProjects } from "../../features/projects/hooks/useProjects.js";
 import { useTasks } from "../../features/tasks/hooks/useTasks.js";
-// Hooks handle project retrieval & state updates
 
 import { formatDate } from "../../shared/utils/formatDate.js";
 import { ROUTES } from "../../shared/constants/routes.js";
@@ -52,6 +47,8 @@ export const ProjectDetailsPage = () => {
 
   const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
   const [isEditProjectOpen, setIsEditProjectOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [isDeletingProject, setIsDeletingProject] = useState(false);
   const [selectedTask, setSelectedTask] = useState(null);
 
   const project = getProjectById(id);
@@ -65,8 +62,7 @@ export const ProjectDetailsPage = () => {
         </div>
         <h2 className="text-xl font-bold text-slate-800">Project Not Found</h2>
         <p className="text-xs text-slate-400 max-w-sm mx-auto">
-          The requested project "{id}" could not be located or has been
-          archived.
+          The requested project "{id}" could not be located or has been archived.
         </p>
         <Link
           to={ROUTES.PROJECTS}
@@ -79,10 +75,10 @@ export const ProjectDetailsPage = () => {
     );
   }
 
-  const handleCreateTask = (taskData) => {
-    addTask({
+  const handleCreateTask = async (taskData) => {
+    await addTask({
       ...taskData,
-      projectId: project.id,
+      projectId: project.id || project._id,
       projectName: project.name,
     });
     setIsCreateTaskOpen(false);
@@ -93,23 +89,21 @@ export const ProjectDetailsPage = () => {
     setIsEditProjectOpen(false);
   };
 
-  const handleDeleteProject = async () => {
-    if (
-      window.confirm(
-        `Are you sure you want to delete "${project.name}"? This action cannot be undone.`
-      )
-    ) {
-      try {
-        await deleteProject(project.id);
-        navigate(ROUTES.PROJECTS);
-      } catch (err) {
-        // Handled by delete toast
-      }
+  const handleConfirmDeleteProject = async (reason) => {
+    setIsDeletingProject(true);
+    try {
+      await deleteProject(project.id, reason);
+      setIsDeleteModalOpen(false);
+      navigate(ROUTES.PROJECTS);
+    } catch (err) {
+      // Handled by delete toast
+    } finally {
+      setIsDeletingProject(false);
     }
   };
 
   const completedTasksCount = projectTasks.filter(
-    (t) => t.status === "COMPLETED" || t.status === "Done",
+    (t) => t.status === "COMPLETED" || t.status === "Done"
   ).length;
   const progressPercent =
     projectTasks.length > 0
@@ -178,26 +172,26 @@ export const ProjectDetailsPage = () => {
           <div className="flex items-center gap-2.5 shrink-0">
             <button
               onClick={() => setIsEditProjectOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs cursor-pointer"
               title="Edit project scope and information"
             >
               <Edit3 size={14} />
               <span>Edit</span>
             </button>
             <button
-              onClick={handleDeleteProject}
-              className="p-2 rounded-2xl border border-slate-200 hover:border-rose-200 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-all shadow-xs"
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="p-2 rounded-2xl border border-slate-200 hover:border-rose-200 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-all shadow-xs cursor-pointer"
               title="Delete project"
             >
               <Trash2 size={15} />
             </button>
-            <button
+            <Button
               onClick={() => setIsCreateTaskOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all cursor-pointer"
             >
               <Plus size={16} />
               <span>Add Task</span>
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -219,56 +213,57 @@ export const ProjectDetailsPage = () => {
               Target Deadline
             </span>
             <span className="font-semibold text-slate-700 mt-0.5 block">
-              {project.dueDate || project.endDate ? formatDate(project.dueDate || project.endDate) : "No due date"}
+              {project.endDate ? formatDate(project.endDate) : "Open-ended"}
             </span>
           </div>
 
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Tagged Contributors
+              Task Execution
             </span>
             <span className="font-semibold text-slate-700 mt-0.5 block">
-              {project.members?.length || 0} Members
+              {completedTasksCount} of {projectTasks.length} Completed
             </span>
           </div>
 
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">
-              Task Completion
+              Overall Progress
             </span>
-            <span className="font-bold text-primary mt-0.5 block">
-              {completedTasksCount}/{projectTasks.length} ({progressPercent}%)
-            </span>
-          </div>
-        </div>
-
-        {/* Global Progress Bar */}
-        <div className="space-y-1">
-          <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-            <div
-              className="h-2 rounded-full transition-all duration-300"
-              style={{
-                width: `${progressPercent}%`,
-                backgroundColor: project.color || "#4361EE",
-              }}
-            />
+            <div className="flex items-center gap-2 mt-1">
+              <div className="flex-1 h-2 rounded-full bg-slate-100 overflow-hidden">
+                <div
+                  className="h-full bg-primary rounded-full transition-all duration-300"
+                  style={{ width: `${progressPercent}%` }}
+                />
+              </div>
+              <span className="font-bold text-slate-800 text-[11px]">
+                {progressPercent}%
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* 3. Section 1: Tagged Project Members ("Who is in this project") */}
+      {/* 3. Section 1: Team Members Tagged to this Project */}
       <div className="p-6 md:p-8 bg-white rounded-3xl border border-slate-100/90 shadow-sm">
         <ProjectMembers
-          projectId={project.id}
           members={project.members || []}
-          onTagMember={(member, projectRole, role) =>
-            tagMemberToProject(project.id, member, projectRole, role)
+          projectId={project.id || project._id}
+          onTagMember={(member, projectRole, role, tags) =>
+            tagMemberToProject(
+              project.id || project._id,
+              member,
+              projectRole,
+              role,
+              tags
+            )
           }
           onUntagMember={(memberId) =>
             untagMemberFromProject(project.id, memberId)
           }
-          onUpdateMemberRole={(memberId, role, projectRole) =>
-            updateMemberRole(project.id, memberId, role, projectRole)
+          onUpdateMemberRole={(memberId, role, projectRole, tags) =>
+            updateMemberRole(project.id, memberId, role, projectRole, tags)
           }
         />
       </div>
@@ -318,6 +313,15 @@ export const ProjectDetailsPage = () => {
           onClose={() => setSelectedTask(null)}
         />
       </Modal>
+
+      {/* 8. Delete Project Modal */}
+      <DeleteProjectModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDeleteProject}
+        projectName={project.name}
+        isDeleting={isDeletingProject}
+      />
     </div>
   );
 };

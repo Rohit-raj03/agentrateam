@@ -188,15 +188,36 @@ export const TaskAttachmentsUploader = ({
         });
       }
 
-      const uploadedList =
-        response?.data ||
-        response?.attachments ||
-        (Array.isArray(response) ? response : [response]);
-
-      const uploadedAttachment =
-        Array.isArray(uploadedList) && uploadedList.length > 0
-          ? uploadedList[0]
-          : uploadedList;
+      // Identify the exact attachment uploaded in this specific call
+      let uploadedAttachment = null;
+      if (
+        Array.isArray(response?.newAttachments) &&
+        response.newAttachments.length > 0
+      ) {
+        uploadedAttachment =
+          response.newAttachments.find(
+            (att) => (att.fileName || att.name) === file.name
+          ) || response.newAttachments[0];
+      } else if (
+        Array.isArray(response?.attachments) &&
+        response.attachments.length > 0
+      ) {
+        uploadedAttachment =
+          response.attachments.find(
+            (att) => (att.fileName || att.name) === file.name
+          ) || response.attachments[response.attachments.length - 1];
+      } else if (Array.isArray(response?.data) && response.data.length > 0) {
+        uploadedAttachment =
+          response.data.find(
+            (att) => (att.fileName || att.name) === file.name
+          ) || response.data[0];
+      } else if (Array.isArray(response) && response.length > 0) {
+        uploadedAttachment =
+          response.find((att) => (att.fileName || att.name) === file.name) ||
+          response[0];
+      } else {
+        uploadedAttachment = response;
+      }
 
       const fileId =
         uploadedAttachment?.fileId ||

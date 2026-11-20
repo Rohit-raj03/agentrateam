@@ -1,5 +1,5 @@
-import React from 'react';
-import { UserPlus, X, Check } from 'lucide-react';
+import React from "react";
+import { UserPlus, X, Check } from "lucide-react";
 
 /**
  * Feature Subcomponent: AdminUserFormModal
@@ -28,7 +28,9 @@ export const AdminUserFormModal = ({
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-900">
-                {editingUser ? 'Edit User Information' : 'Add New Organization Member'}
+                {editingUser
+                  ? "Edit User Information"
+                  : "Add New Organization Member"}
               </h3>
               <p className="text-[11px] text-slate-400">
                 Configure profile credentials and role permissions
@@ -59,7 +61,7 @@ export const AdminUserFormModal = ({
                 required
                 placeholder="e.g. Vikram Joshi"
                 value={formData.name}
-                onChange={(e) => onFieldChange('name', e.target.value)}
+                onChange={(e) => onFieldChange("name", e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
               />
             </div>
@@ -70,20 +72,22 @@ export const AdminUserFormModal = ({
                 type="text"
                 placeholder="e.g. vikramj"
                 value={formData.username}
-                onChange={(e) => onFieldChange('username', e.target.value)}
+                onChange={(e) => onFieldChange("username", e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
               />
             </div>
           </div>
 
           <div className="space-y-1">
-            <label className="font-bold text-slate-700">Email Address *</label>
+            <label className="font-bold text-slate-700">
+              Email Address <span className="text-red-500">*</span>
+            </label>
             <input
               type="email"
               required
               placeholder="e.g. vikram@agentrateam.io"
               value={formData.email}
-              onChange={(e) => onFieldChange('email', e.target.value)}
+              onChange={(e) => onFieldChange("email", e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
             />
           </div>
@@ -93,7 +97,7 @@ export const AdminUserFormModal = ({
               <label className="font-bold text-slate-700">System Role</label>
               <select
                 value={formData.role}
-                onChange={(e) => onFieldChange('role', e.target.value)}
+                onChange={(e) => onFieldChange("role", e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium"
               >
                 <option value="Admin">Admin</option>
@@ -106,11 +110,11 @@ export const AdminUserFormModal = ({
               <label className="font-bold text-slate-700">Team</label>
               <select
                 value={formData.team}
-                onChange={(e) => onFieldChange('team', e.target.value)}
+                onChange={(e) => onFieldChange("team", e.target.value)}
                 className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white font-medium"
               >
                 {teamsList
-                  .filter((t) => t !== 'All Teams')
+                  .filter((t) => t !== "All Teams")
                   .map((t) => (
                     <option key={t} value={t}>
                       {t}
@@ -121,12 +125,14 @@ export const AdminUserFormModal = ({
           </div>
 
           <div className="space-y-1">
-            <label className="font-bold text-slate-700">Job Title / Discipline</label>
+            <label className="font-bold text-slate-700">
+              Job Title / Discipline
+            </label>
             <input
               type="text"
               placeholder="e.g. Senior Frontend Engineer"
               value={formData.jobTitle}
-              onChange={(e) => onFieldChange('jobTitle', e.target.value)}
+              onChange={(e) => onFieldChange("jobTitle", e.target.value)}
               className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white"
             />
           </div>
@@ -144,7 +150,7 @@ export const AdminUserFormModal = ({
               className="px-5 py-2 rounded-xl bg-primary hover:bg-primary-hover text-white font-bold shadow-xs transition-colors flex items-center gap-1.5"
             >
               <Check size={14} />
-              <span>{editingUser ? 'Save Changes' : 'Create User'}</span>
+              <span>{editingUser ? "Save Changes" : "Create User"}</span>
             </button>
           </div>
         </form>

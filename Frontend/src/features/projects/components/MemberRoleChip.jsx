@@ -33,7 +33,7 @@ export const MemberRoleChip = ({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-mono border shadow-2xs shrink-0 transition-all hover:brightness-95 ${className}`}
+      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-sans font-semibold border shadow-2xs shrink-0 transition-all hover:brightness-95 ${className}`}
       style={{
         backgroundColor: "rgba(67, 97, 238, 0.12)",
         color: "rgb(67, 97, 238)",

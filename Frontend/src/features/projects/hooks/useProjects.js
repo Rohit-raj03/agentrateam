@@ -272,12 +272,14 @@ export function useProjects(options = {}) {
     }
   };
 
-  const handleUpdateMemberRole = async (projectId, memberId, role, projectRole) => {
+  const handleUpdateMemberRole = async (projectId, memberId, role, projectRole, tags) => {
     try {
-      const res = await projectService.updateProjectMemberRole(projectId, memberId, {
+      const payload = {
         role,
         projectRole,
-      });
+        ...(Array.isArray(tags) ? { tags, projectRoles: tags } : {}),
+      };
+      const res = await projectService.updateProjectMemberRole(projectId, memberId, payload);
       if (res?.members) {
         dispatch(
           updateProjectAction({
@@ -287,12 +289,12 @@ export function useProjects(options = {}) {
         );
       } else {
         dispatch(
-          updateMemberRoleAction({ projectId, memberId, role, projectRole })
+          updateMemberRoleAction({ projectId, memberId, role, projectRole, tags })
         );
       }
     } catch (err) {
       dispatch(
-        updateMemberRoleAction({ projectId, memberId, role, projectRole })
+        updateMemberRoleAction({ projectId, memberId, role, projectRole, tags })
       );
     }
   };

@@ -25,6 +25,7 @@ export const TaskDetailsPage = () => {
       <div className="p-8 bg-white rounded-3xl border border-slate-100">
         <TaskDetails
           task={task}
+          taskId={id}
           onDelete={() => navigate(ROUTES.TASKS)}
           onClose={() => navigate(ROUTES.TASKS)}
         />

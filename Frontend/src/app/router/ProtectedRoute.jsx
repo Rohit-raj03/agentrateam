@@ -1,12 +1,11 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { Navigate, Outlet } from 'react-router-dom';
-import { useAuth } from '../../features/auth/hooks/useAuth.js';
-import { ROUTES } from '../../shared/constants/routes.js';
-import { showToast } from '../../shared/utils/toast.js';
+import React, { useMemo } from "react";
+import { Navigate, Outlet, Link } from "react-router-dom";
+import { ShieldAlert, ArrowLeft } from "lucide-react";
+import { useAuth } from "../../features/auth/hooks/useAuth.js";
+import { ROUTES } from "../../shared/constants/routes.js";
 
 export const ProtectedRoute = ({ allowedRoles }) => {
-  const { isAuthenticated, user, loading, checkAuth } = useAuth();
-  const authCheckedRef = useRef(false);
+  const { isAuthenticated, user, loading } = useAuth();
 
   // Normalize allowedRoles to lowercase trimmed strings
   const normalizedAllowedRoles = useMemo(() => {
@@ -20,88 +19,70 @@ export const ProtectedRoute = ({ allowedRoles }) => {
     return allowedRoles.map((r) => String(r).toLowerCase().trim());
   }, [allowedRoles]);
 
-  const userRole = (user?.role || '').toLowerCase().trim();
+  const userRole = (user?.role || "").toLowerCase().trim();
   const isRoleRestricted = Boolean(
-    normalizedAllowedRoles && normalizedAllowedRoles.length > 0
-  );
-  const isAdminRequired = Boolean(
-    normalizedAllowedRoles && normalizedAllowedRoles.includes('admin')
+    normalizedAllowedRoles && normalizedAllowedRoles.length > 0,
   );
 
-  // If role is restricted, require background auth check if role is admin or if role is currently unverified
-  const initialRoleValid = isRoleRestricted
-    ? isAdminRequired
-      ? userRole === 'admin'
-        ? true
-        : null
-      : normalizedAllowedRoles.includes(userRole)
-    : true;
-
-  const [isRoleValid, setIsRoleValid] = useState(initialRoleValid);
-
-  useEffect(() => {
-    let isMounted = true;
-
-    if (
-      isAuthenticated &&
-      isRoleRestricted &&
-      isRoleValid === null &&
-      !authCheckedRef.current
-    ) {
-      authCheckedRef.current = true;
-      checkAuth()
-        .then((freshUser) => {
-          if (!isMounted) return;
-          const freshRole = (freshUser?.role || userRole).toLowerCase().trim();
-          if (normalizedAllowedRoles.includes(freshRole)) {
-            setIsRoleValid(true);
-          } else {
-            setIsRoleValid(false);
-            showToast.error('Access denied. Insufficient permissions.');
-          }
-        })
-        .catch(() => {
-          if (!isMounted) return;
-          if (normalizedAllowedRoles.includes(userRole)) {
-            setIsRoleValid(true);
-          } else {
-            setIsRoleValid(false);
-            showToast.error('Access denied. Insufficient permissions.');
-          }
-        });
-    }
-
-    return () => {
-      isMounted = false;
-    };
-  }, [
-    isAuthenticated,
-    isRoleRestricted,
-    isRoleValid,
-    normalizedAllowedRoles,
-    userRole,
-    checkAuth,
-  ]);
-
-  if (
-    loading ||
-    (isRoleRestricted && isRoleValid === null && isAuthenticated)
-  ) {
+  // If initial auth token hydration is genuinely in-progress without user data, show brief loader
+  if (loading && !user) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-[#F4F7FE]">
+      <div className="h-screen w-screen flex items-center justify-center bg-surface-page">
         <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
+  // Not authenticated -> redirect to login
   if (!isAuthenticated) {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
 
-  if (isRoleRestricted) {
-    if (isRoleValid === false || !normalizedAllowedRoles.includes(userRole)) {
-      return <Navigate to={ROUTES.DASHBOARD} replace />;
-    }
+  // Role restricted and user does not have permission -> clarify authorization status clearly
+  if (isRoleRestricted && !normalizedAllowedRoles.includes(userRole)) {
+    return (
+      <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl border border-slate-100 shadow-sm p-6 text-center space-y-4 animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center mx-auto shadow-xs">
+            <ShieldAlert size={28} />
+          </div>
+
+          <div className="space-y-1.5">
+            <span className="inline-block text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-100/70 px-2.5 py-0.5 rounded-full border border-amber-200">
+              403 • Unauthorized
+            </span>
+            <h3 className="text-lg font-bold text-slate-900 pt-1">
+              Access Restricted
+            </h3>
+            <p className="text-xs text-slate-500 leading-relaxed">
+              You are signed in as{" "}
+              <span className="font-semibold text-slate-800">
+                {user?.name || user?.email || "User"}
+              </span>{" "}
+              with the role{" "}
+              <span className="font-semibold text-slate-800 capitalize">
+                "{userRole || "Team Member"}"
+              </span>
+              . This section is restricted to{" "}
+              <span className="font-semibold text-primary capitalize">
+                {normalizedAllowedRoles.join(", ")}
+              </span>{" "}
+              accounts.
+            </p>
+          </div>
+
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-2">
+            <Link
+              to={ROUTES.DASHBOARD}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-2xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all cursor-pointer"
+            >
+              <ArrowLeft size={14} />
+              <span>Back to Dashboard</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return <Outlet />;

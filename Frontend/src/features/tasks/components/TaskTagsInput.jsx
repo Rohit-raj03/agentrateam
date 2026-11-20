@@ -96,9 +96,8 @@ export const TaskTagsInput = ({
       {/* Selected Tags Chips */}
       {tags.length > 0 && (
         <div
-          className="flex flex-wrap gap-1.5 p-2 rounded-xl border transition-colors"
+          className="flex flex-wrap gap-1.5 p-2 rounded-xl border transition-colors "
           style={{
-            backgroundColor: tokens.bgSubtle,
             borderColor: tokens.border,
           }}
         >

@@ -10,6 +10,7 @@ import {
   Filter,
 } from "lucide-react";
 import { PageHeader } from "../../shared/components/layout/PageHeader.jsx";
+import { Button } from "../../shared/components/ui/Button.jsx";
 import { ProjectList } from "../../features/projects/components/ProjectList.jsx";
 import { CreateProjectModal } from "../../features/projects/components/CreateProjectModal.jsx";
 import { useProjects } from "../../features/projects/hooks/useProjects.js";
@@ -59,13 +60,13 @@ export const ProjectsPage = () => {
         title="Projects"
         subtitle="Organize initiatives, tag contributors, and connect milestone tasks."
         action={
-          <button
+          <Button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all cursor-pointer"
           >
             <Plus size={16} />
             <span>New Project</span>
-          </button>
+          </Button>
         }
       />
 
@@ -139,7 +140,7 @@ export const ProjectsPage = () => {
             <button
               key={tab.id}
               onClick={() => setFilter(tab.id)}
-              className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-xl transition-all whitespace-nowrap hover:cursor-pointer ${
                 filter === tab.id
                   ? "bg-primary text-white shadow-xs"
                   : "text-slate-500 hover:text-slate-800 hover:bg-slate-50"

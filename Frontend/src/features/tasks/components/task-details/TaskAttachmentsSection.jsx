@@ -6,6 +6,7 @@ import {
   FileText,
   Eye,
   ExternalLink,
+  Download,
   Trash2,
   Loader2,
 } from "lucide-react";
@@ -27,6 +28,34 @@ export const TaskAttachmentsSection = ({
   removingAttachmentId = null,
 }) => {
   const [isUploaderOpen, setIsUploaderOpen] = useState(false);
+
+  const handleDownload = async (fileUrl, fileName, e) => {
+    e?.stopPropagation?.();
+    if (!fileUrl) return;
+
+    try {
+      const response = await fetch(fileUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = fileName || "attachment";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch {
+      // Direct navigation fallback if blob fetch blocked by CORS
+      const link = document.createElement("a");
+      link.href = fileUrl;
+      link.download = fileName || "attachment";
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+  };
 
   return (
     <div className="space-y-3 p-4 rounded-2xl bg-slate-50/60 border border-slate-100">
@@ -150,19 +179,37 @@ export const TaskAttachmentsSection = ({
                   </div>
                 </div>
 
-                {/* Actions: Open & Remove */}
+                {/* Actions: Open, Download & Remove */}
                 <div className="flex items-center gap-1 shrink-0 ml-2">
-                  {fileUrl && (
-                    <a
-                      href={fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-indigo-50 transition-colors"
-                      title="Open attachment in new tab"
-                      aria-label={`Open ${fileName}`}
+                  {fileUrl ? (
+                    <>
+                      <a
+                        href={fileUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-indigo-50 transition-colors"
+                        title="Open attachment in new tab"
+                        aria-label={`Open ${fileName}`}
+                      >
+                        <ExternalLink size={13} />
+                      </a>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDownload(fileUrl, fileName, e)}
+                        className="p-1.5 rounded-lg text-slate-400 hover:text-primary hover:bg-indigo-50 transition-colors cursor-pointer"
+                        title={`Download ${fileName}`}
+                        aria-label={`Download ${fileName}`}
+                      >
+                        <Download size={13} />
+                      </button>
+                    </>
+                  ) : (
+                    <span
+                      className="text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200"
+                      title="File URL is currently unavailable"
                     >
-                      <ExternalLink size={13} />
-                    </a>
+                      No URL
+                    </span>
                   )}
 
                   {canRemove && (

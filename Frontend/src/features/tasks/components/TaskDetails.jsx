@@ -1,5 +1,8 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useDispatch } from "react-redux";
+import { Loader2 } from "lucide-react";
 import { useTasks } from "../hooks/useTasks.js";
+import { updateTask as updateTaskAction } from "../store/taskSlice.js";
 import { useAuth } from "../../auth/hooks/useAuth.js";
 import { taskService } from "../services/task.service.js";
 import { showToast } from "../../../shared/utils/toast.js";
@@ -30,15 +33,41 @@ export const TaskDetails = ({
   onClose,
   projectMembers: passedMembers,
 }) => {
+  const dispatch = useDispatch();
   const { allTasks, updateTask, deleteTask } = useTasks();
   const { members: teamMembers } = useTeam();
   const { getProjectById } = useProjects();
 
-  // Retrieve the live reactive task from Redux store
+  const [loadingTask, setLoadingTask] = useState(false);
+  const [fetchedTask, setFetchedTask] = useState(null);
+
+  // Retrieve the live reactive task from Redux store or locally fetched fallback
   const currentId = taskId || initialTask?.id || initialTask?._id;
-  const task =
-    allTasks.find((t) => t.id === currentId || t._id === currentId) ||
-    initialTask;
+  const reduxTask = allTasks.find(
+    (t) => t.id === currentId || t._id === currentId
+  );
+  const task = reduxTask || fetchedTask || initialTask;
+
+  useEffect(() => {
+    if (!task && currentId) {
+      setLoadingTask(true);
+      taskService
+        .getTaskById(currentId)
+        .then((res) => {
+          const t = res?.task || res?.data || res;
+          if (t) {
+            setFetchedTask(t);
+            dispatch(updateTaskAction(t));
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load task overview:", err);
+        })
+        .finally(() => {
+          setLoadingTask(false);
+        });
+    }
+  }, [currentId, task, dispatch]);
 
   const project = getProjectById(
     task?.projectId || task?.project?._id || task?.project
@@ -75,7 +104,7 @@ export const TaskDetails = ({
     task?.creator?.id ||
     task?.creator
   )?.toString();
-  const isAdmin = currentUser?.role === "admin";
+  const isAdmin = currentUser?.role?.toLowerCase() === "admin";
   const isCreator = Boolean(
     currentUserId && creatorId && currentUserId === creatorId
   );
@@ -90,19 +119,37 @@ export const TaskDetails = ({
     const aId = (a?._id || a?.id || a)?.toString();
     return aId === currentUserId;
   });
+  const isProjectMember = Boolean(
+    project?.members?.some((m) => {
+      const mId = (m?.id || m?._id || m?.user?._id || m?.user)?.toString();
+      return mId === currentUserId;
+    })
+  );
 
   const canManageTask = isAdmin || isCreator || isProjectManager;
-  const canAttachFiles = canManageTask || isAssignee;
+  // Assignees, creators, managers, and project members can attach resources
+  const canAttachFiles = canManageTask || isAssignee || isProjectMember;
 
   const canRemoveAttachment = (attachment) => {
     if (canManageTask) return true;
     const uploaderId = (
-      attachment.uploadedBy?._id ||
-      attachment.uploadedBy?.id ||
-      attachment.uploadedBy
+      attachment?.uploadedBy?._id ||
+      attachment?.uploadedBy?.id ||
+      attachment?.uploadedBy
     )?.toString();
     return Boolean(uploaderId && currentUserId && uploaderId === currentUserId);
   };
+
+  if (loadingTask && !task) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 space-y-3">
+        <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        <p className="text-xs text-slate-500 font-medium">
+          Loading task overview...
+        </p>
+      </div>
+    );
+  }
 
   if (!task) return null;
 
@@ -315,7 +362,7 @@ export const TaskDetails = ({
         attachments: updatedAttachments,
       };
 
-      updateTask(updatedTask, { silent: true });
+      dispatch(updateTaskAction(updatedTask));
       onUpdate?.(updatedTask);
       showToast.attachments.removed();
     } catch (err) {
@@ -332,7 +379,7 @@ export const TaskDetails = ({
       ...task,
       attachments: newAttachments,
     };
-    updateTask(updatedTask, { silent: true });
+    dispatch(updateTaskAction(updatedTask));
     onUpdate?.(updatedTask);
   };
 
@@ -363,6 +410,7 @@ export const TaskDetails = ({
       {/* 1. Header with Status, Priority, Edit, Delete, Title, Description, Dates & Creator */}
       <TaskHeaderMeta
         task={task}
+        project={project}
         effectiveMembers={effectiveMembers}
         onStatusChange={handleStatusChange}
         onPriorityChange={handlePriorityChange}

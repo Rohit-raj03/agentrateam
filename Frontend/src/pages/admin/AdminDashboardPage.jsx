@@ -77,8 +77,8 @@ export const AdminDashboardPage = () => {
     setIsCreateProjectOpen(false);
   };
 
-  const handleCreateTask = (taskData) => {
-    addTask(taskData);
+  const handleCreateTask = async (taskData) => {
+    await addTask(taskData);
     addLog(actorName, "created a new task", taskData.title, "Tasks");
     showToast(`Task "${taskData.title}" created successfully.`);
     setIsCreateTaskOpen(false);

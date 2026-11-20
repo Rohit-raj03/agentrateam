@@ -99,13 +99,24 @@ export const CreateTaskForm = ({
   // Track if task is successfully saved to prevent cleanup on unmount
   const isSavedRef = useRef(false);
   const currentAttachmentsRef = useRef(formData.attachments);
+  const sessionUploadedFileIdsRef = useRef(new Set());
   const cleanedUpFileIdsRef = useRef(new Set());
 
   useEffect(() => {
     currentAttachmentsRef.current = formData.attachments;
-  }, [formData.attachments]);
+    const initialFileIds = new Set(
+      (initialData?.attachments || [])
+        .map((a) => a.fileId || a._id || a.id)
+        .filter(Boolean),
+    );
+    (formData.attachments || []).forEach((att) => {
+      if (att.fileId && !initialFileIds.has(att.fileId)) {
+        sessionUploadedFileIdsRef.current.add(att.fileId);
+      }
+    });
+  }, [formData.attachments, initialData?.attachments]);
 
-  // Clean up any files uploaded during this session from ImageKit if task is cancelled / not saved
+  // Clean up any files uploaded during this session from ImageKit if task creation is cancelled / not saved
   const deleteSessionUploadedFiles = useCallback(() => {
     if (isSavedRef.current) return;
     const initialFileIds = new Set(
@@ -113,13 +124,17 @@ export const CreateTaskForm = ({
         .map((a) => a.fileId || a._id || a.id)
         .filter(Boolean),
     );
-    const newlyAdded = (currentAttachmentsRef.current || []).filter(
-      (a) => a.fileId && !initialFileIds.has(a.fileId),
-    );
-    for (const item of newlyAdded) {
-      if (item.fileId && !cleanedUpFileIdsRef.current.has(item.fileId)) {
-        cleanedUpFileIdsRef.current.add(item.fileId);
-        taskService.deleteImageKitFile(item.fileId).catch(() => {});
+    const toDelete = new Set([
+      ...Array.from(sessionUploadedFileIdsRef.current),
+      ...(currentAttachmentsRef.current || [])
+        .map((a) => a.fileId)
+        .filter((fId) => fId && !initialFileIds.has(fId)),
+    ]);
+
+    for (const fId of toDelete) {
+      if (fId && !cleanedUpFileIdsRef.current.has(fId)) {
+        cleanedUpFileIdsRef.current.add(fId);
+        taskService.deleteImageKitFile(fId).catch(() => {});
       }
     }
   }, [initialData?.attachments]);
@@ -129,10 +144,12 @@ export const CreateTaskForm = ({
     deleteSessionUploadedFilesRef.current = deleteSessionUploadedFiles;
   }, [deleteSessionUploadedFiles]);
 
+  // Execute cleanup on unmount if creation is cancelled (X button, backdrop, Escape, cancel button, or navigating away)
   useEffect(() => {
     return () => {
-      // Trigger deletion for all uploaded fileIds from the current session if closed without saving
-      deleteSessionUploadedFilesRef.current?.();
+      if (!isSavedRef.current) {
+        deleteSessionUploadedFilesRef.current?.();
+      }
     };
   }, []);
 
@@ -202,8 +219,8 @@ export const CreateTaskForm = ({
               : "Unassigned",
         };
 
-        await onSubmit(submissionData);
         isSavedRef.current = true;
+        await onSubmit(submissionData);
       } catch (err) {
         console.error("Task submission error:", err);
         setServerError(
@@ -218,6 +235,7 @@ export const CreateTaskForm = ({
   };
 
   const handleCancel = async () => {
+    isSavedRef.current = false;
     // Delete all files uploaded in this session from ImageKit
     deleteSessionUploadedFiles();
     onCancel?.();

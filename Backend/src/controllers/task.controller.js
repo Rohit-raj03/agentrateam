@@ -445,6 +445,12 @@ export const createTask = async (req, res) => {
         const fileUrl = att.fileUrl || att.url;
         if (!fileId || !fileName || !fileUrl) continue;
 
+        let uploader =
+          att.uploadedBy?._id || att.uploadedBy?.id || att.uploadedBy;
+        if (!mongoose.Types.ObjectId.isValid(uploader)) {
+          uploader = req.user._id;
+        }
+
         sanitizedAttachments.push({
           fileId: String(fileId).trim(),
           fileName: String(fileName).trim(),
@@ -456,8 +462,9 @@ export const createTask = async (req, res) => {
           mimeType: att.mimeType || "",
           fileSize: Number(att.fileSize) || 0,
           thumbnailUrl:
-            att.thumbnailUrl || (att.fileType === "image" ? fileUrl : ""),
-          uploadedBy: att.uploadedBy || req.user._id,
+            att.thumbnailUrl ||
+            (att.fileType === "image" || att.type === "image" ? fileUrl : ""),
+          uploadedBy: uploader,
           uploadedAt: att.uploadedAt || new Date(),
         });
       }
@@ -750,10 +757,29 @@ export const updateTask = async (req, res) => {
       if (Array.isArray(req.body.attachments)) {
         for (const att of req.body.attachments) {
           if (!att || typeof att !== "object") continue;
-          const fileId = att.fileId || att.id;
+
+          // Preserve existing fileId if matched by _id or id
+          let fileId = att.fileId;
+          if (!fileId && (att._id || att.id)) {
+            const targetId = (att._id || att.id).toString();
+            const existingMatch = oldAttachments.find(
+              (o) => o._id?.toString() === targetId || o.id === targetId
+            );
+            if (existingMatch?.fileId) {
+              fileId = existingMatch.fileId;
+            }
+          }
+          if (!fileId) fileId = att.id || att._id;
+
           const fileName = att.fileName || att.name;
           const fileUrl = att.fileUrl || att.url;
           if (!fileId || !fileName || !fileUrl) continue;
+
+          let uploader =
+            att.uploadedBy?._id || att.uploadedBy?.id || att.uploadedBy;
+          if (!mongoose.Types.ObjectId.isValid(uploader)) {
+            uploader = req.user._id;
+          }
 
           sanitizedAttachments.push({
             fileId: String(fileId).trim(),
@@ -766,8 +792,9 @@ export const updateTask = async (req, res) => {
             mimeType: att.mimeType || "",
             fileSize: Number(att.fileSize) || 0,
             thumbnailUrl:
-              att.thumbnailUrl || (att.fileType === "image" ? fileUrl : ""),
-            uploadedBy: att.uploadedBy || req.user._id,
+              att.thumbnailUrl ||
+              (att.fileType === "image" || att.type === "image" ? fileUrl : ""),
+            uploadedBy: uploader,
             uploadedAt: att.uploadedAt || new Date(),
           });
         }
@@ -827,11 +854,21 @@ export const updateTask = async (req, res) => {
     try {
       await task.save();
     } catch (saveErr) {
-      if (saveErr.name === "VersionError") {
+      const isVersionConflict =
+        saveErr.name === "VersionError" ||
+        saveErr.name === "DocumentNotFoundError" ||
+        saveErr instanceof mongoose.Error.VersionError ||
+        saveErr.message?.includes("No matching document found") ||
+        saveErr.message?.includes("version");
+
+      if (isVersionConflict && typeof TaskModel.findByIdAndUpdate === "function") {
         await TaskModel.findByIdAndUpdate(task._id, {
           $set: {
             title: task.title,
             description: task.description,
+            project: task.project,
+            projectName: task.projectName,
+            isIndividual: task.isIndividual,
             status: task.status,
             priority: task.priority,
             startDate: task.startDate,
@@ -847,22 +884,6 @@ export const updateTask = async (req, res) => {
         });
       } else {
         throw saveErr;
-      }
-    }
-    for (const fId of removedAttachmentFileIds) {
-      try {
-        const refCount = await TaskModel.countDocuments({
-          _id: { $ne: task._id },
-          "attachments.fileId": fId,
-        });
-        if (refCount === 0) {
-          await safeCleanupFile(fId);
-        }
-      } catch (cleanErr) {
-        console.warn(
-          `Could not verify/clean removed ImageKit file ${fId}:`,
-          cleanErr.message
-        );
       }
     }
 
@@ -1058,7 +1079,21 @@ export const toggleSubtask = async (req, res) => {
     }
 
     sub.completed = !sub.completed;
-    await task.save();
+    try {
+      await task.save();
+    } catch (saveErr) {
+      if (
+        saveErr.name === "VersionError" ||
+        saveErr.message?.includes("No matching document found")
+      ) {
+        await TaskModel.updateOne(
+          { _id: taskId, "subtasks._id": subtaskId },
+          { $set: { "subtasks.$.completed": sub.completed } }
+        );
+      } else {
+        throw saveErr;
+      }
+    }
 
     const populated = await TaskModel.findById(taskId)
       .populate("project", "name key color themeColor status category")
@@ -1683,14 +1718,15 @@ export const attachFilesToTask = async (req, res) => {
       .populate("project", "name key color themeColor status category")
       .populate("creator", "name email avatar username jobTitle")
       .populate("assignees", "name email avatar username jobTitle role")
-      .populate("mentions", "name email avatar username")
-      .populate("attachments.uploadedBy", "name email avatar username");
+      .populate("mentions", "name email avatar username");
 
     return res.status(200).json({
       success: true,
       message: `${newAttachments.length} file(s) attached successfully`,
+      newAttachments,
       attachments: populated.attachments,
       task: populated,
+      data: populated,
     });
   } catch (error) {
     // Two-Phase Rollback: delete ImageKit files if DB save fails
@@ -1778,7 +1814,22 @@ export const deleteTaskAttachment = async (req, res) => {
       (a) => a._id?.toString() !== targetAttachment._id?.toString()
     );
 
-    await task.save();
+    try {
+      await task.save();
+    } catch (saveErr) {
+      if (
+        saveErr.name === "VersionError" ||
+        saveErr.message?.includes("No matching document found")
+      ) {
+        if (typeof TaskModel.findByIdAndUpdate === "function") {
+          await TaskModel.findByIdAndUpdate(task._id, {
+            $pull: { attachments: { _id: targetAttachment._id } },
+          });
+        }
+      } else {
+        throw saveErr;
+      }
+    }
 
     // Verify no other task references this ImageKit file before deleting
     if (fileIdToDelete) {
@@ -1802,8 +1853,7 @@ export const deleteTaskAttachment = async (req, res) => {
       .populate("project", "name key color themeColor status category")
       .populate("creator", "name email avatar username jobTitle")
       .populate("assignees", "name email avatar username jobTitle role")
-      .populate("mentions", "name email avatar username")
-      .populate("attachments.uploadedBy", "name email avatar username");
+      .populate("mentions", "name email avatar username");
 
     return res.status(200).json({
       success: true,
