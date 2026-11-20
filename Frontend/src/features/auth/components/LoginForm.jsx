@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Mail, Lock, User } from "lucide-react";
 import { Input } from "../../../shared/components/ui/Input.jsx";
@@ -34,23 +34,26 @@ export const LoginForm = () => {
     }
   };
 
-  const handleGoogleSuccess = async (credential) => {
-    try {
-      setErrors({});
-      await loginWithGoogle(credential);
-      navigate(ROUTES.DASHBOARD);
-    } catch (err) {
-      setErrors({
-        form: err.message || "Google sign in failed. Please try again.",
-      });
-    }
-  };
+  const handleGoogleSuccess = useCallback(
+    async (credential) => {
+      try {
+        setErrors({});
+        await loginWithGoogle(credential);
+        navigate(ROUTES.DASHBOARD);
+      } catch (err) {
+        setErrors({
+          form: err.message || "Google sign in failed. Please try again.",
+        });
+      }
+    },
+    [loginWithGoogle, navigate]
+  );
 
-  const handleGoogleError = (err) => {
+  const handleGoogleError = useCallback((err) => {
     setErrors({
       form: err.message || "Unable to initialize Google Sign In.",
     });
-  };
+  }, []);
 
   // Determine icon: if text doesn't contain '@' and has length, show User icon, else Mail icon
   const EmailOrUserIcon =

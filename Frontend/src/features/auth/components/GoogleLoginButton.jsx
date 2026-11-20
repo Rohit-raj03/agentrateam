@@ -6,6 +6,9 @@ import { env } from "../../../config/env.js";
  * Responsibility: Renders official Google Identity Services (GIS) Sign-In button
  * without any external npm packages or peer-dependency conflicts.
  */
+let isGoogleInitialized = false;
+let activeCallback = null;
+
 export const GoogleLoginButton = ({
   onSuccess,
   onError,
@@ -14,6 +17,11 @@ export const GoogleLoginButton = ({
 }) => {
   const buttonRef = useRef(null);
   const [isReady, setIsReady] = useState(false);
+  const callbacksRef = useRef({ onSuccess, onError });
+
+  useEffect(() => {
+    callbacksRef.current = { onSuccess, onError };
+  }, [onSuccess, onError]);
 
   useEffect(() => {
     if (!env.GOOGLE_CLIENT_ID) {
@@ -27,25 +35,38 @@ export const GoogleLoginButton = ({
 
     let checkInterval = null;
 
-    const initializeGoogleSignIn = () => {
+    const handleGoogleResponse = (response) => {
+      if (response?.credential) {
+        callbacksRef.current.onSuccess?.(response.credential);
+      } else {
+        callbacksRef.current.onError?.(
+          new Error("No credential returned from Google")
+        );
+      }
+    };
+
+    activeCallback = handleGoogleResponse;
+
+    const setupGoogleButton = () => {
       if (typeof window === "undefined" || !window.google?.accounts?.id) {
         return false;
       }
 
       try {
-        window.google.accounts.id.initialize({
-          client_id: env.GOOGLE_CLIENT_ID,
-          callback: (response) => {
-            if (response?.credential) {
-              onSuccess?.(response.credential);
-            } else {
-              onError?.(new Error("No credential returned from Google"));
-            }
-          },
-          auto_select: false,
-          cancel_on_tap_outside: true,
-        });
+        // Initialize Google Identity Services only ONCE per application session
+        if (!isGoogleInitialized) {
+          window.google.accounts.id.initialize({
+            client_id: env.GOOGLE_CLIENT_ID,
+            callback: (res) => {
+              activeCallback?.(res);
+            },
+            auto_select: false,
+            cancel_on_tap_outside: true,
+          });
+          isGoogleInitialized = true;
+        }
 
+        // Render the button into the current container
         if (buttonRef.current) {
           buttonRef.current.innerHTML = "";
           window.google.accounts.id.renderButton(buttonRef.current, {
@@ -61,25 +82,30 @@ export const GoogleLoginButton = ({
         setIsReady(true);
         return true;
       } catch (err) {
-        console.error("Failed to initialize Google Sign-In:", err);
-        onError?.(err);
+        console.error("Failed to render Google Sign-In button:", err);
+        callbacksRef.current.onError?.(err);
         return false;
       }
     };
 
-    if (!initializeGoogleSignIn()) {
-      // Poll until Google Identity script is loaded
+    if (!setupGoogleButton()) {
       checkInterval = setInterval(() => {
-        if (initializeGoogleSignIn()) {
+        if (setupGoogleButton()) {
           clearInterval(checkInterval);
+          checkInterval = null;
         }
       }, 200);
     }
 
     return () => {
-      if (checkInterval) clearInterval(checkInterval);
+      if (checkInterval) {
+        clearInterval(checkInterval);
+      }
+      if (activeCallback === handleGoogleResponse) {
+        activeCallback = null;
+      }
     };
-  }, [onSuccess, onError, text]);
+  }, [text]);
 
   if (!env.GOOGLE_CLIENT_ID) {
     return (

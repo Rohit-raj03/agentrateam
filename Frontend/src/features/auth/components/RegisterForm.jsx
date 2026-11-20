@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { User, Mail, Lock } from "lucide-react";
 import { Input } from "../../../shared/components/ui/Input.jsx";
@@ -39,23 +39,26 @@ export const RegisterForm = () => {
     }
   };
 
-  const handleGoogleSuccess = async (credential) => {
-    try {
-      setErrors({});
-      await loginWithGoogle(credential);
-      navigate(ROUTES.DASHBOARD);
-    } catch (err) {
-      setErrors({
-        form: err.message || "Google registration failed. Please try again.",
-      });
-    }
-  };
+  const handleGoogleSuccess = useCallback(
+    async (credential) => {
+      try {
+        setErrors({});
+        await loginWithGoogle(credential);
+        navigate(ROUTES.DASHBOARD);
+      } catch (err) {
+        setErrors({
+          form: err.message || "Google registration failed. Please try again.",
+        });
+      }
+    },
+    [loginWithGoogle, navigate]
+  );
 
-  const handleGoogleError = (err) => {
+  const handleGoogleError = useCallback((err) => {
     setErrors({
       form: err.message || "Unable to initialize Google Sign In.",
     });
-  };
+  }, []);
 
   return (
     <div className="space-y-4">
