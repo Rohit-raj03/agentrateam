@@ -28,6 +28,7 @@ import { TaskTagsInput } from "./TaskTagsInput.jsx";
 import { MentionTextarea } from "./MentionTextarea.jsx";
 import { useProjects } from "../../projects/hooks/useProjects.js";
 import { useTeam } from "../../team/hooks/useTeam.js";
+import { useAuth } from "../../auth/hooks/useAuth.js";
 import { taskService } from "../services/task.service.js";
 import { formatDateForInput } from "../../../shared/utils/formatDate.js";
 import { Avatar } from "../../../shared/components/ui/Avatar.jsx";
@@ -90,6 +91,48 @@ export const CreateTaskForm = ({
   const { allProjects } = useProjects();
   const { members: allTeamMembers } = useTeam();
   const availableProjects = allProjects || [];
+
+  const { user: currentUser } = useAuth();
+  const currentUserId = (currentUser?._id || currentUser?.id)?.toString();
+  const isPlatformAdmin = currentUser?.role?.toLowerCase() === "admin";
+
+  const taskCreatorId = (
+    initialData?.creator?._id ||
+    initialData?.creator?.id ||
+    initialData?.creator
+  )?.toString();
+  const isTaskCreator = Boolean(
+    currentUserId && taskCreatorId && currentUserId === taskCreatorId
+  );
+
+  const initialProjectId = (
+    initialData?.projectId ||
+    (typeof initialData?.project === "string" ? initialData.project : null) ||
+    initialData?.project?._id ||
+    initialData?.project?.id ||
+    ""
+  )?.toString();
+
+  const initialProject = availableProjects.find(
+    (p) => (p.id || p._id)?.toString() === initialProjectId
+  );
+
+  const isCurrentProjectManager = Boolean(
+    initialProject &&
+      currentUserId &&
+      ((initialProject.owner?._id || initialProject.owner)?.toString() === currentUserId ||
+        (initialProject.manager?._id || initialProject.manager)?.toString() === currentUserId ||
+        initialProject.members?.some(
+          (m) =>
+            (m.id?.toString() === currentUserId ||
+              m._id?.toString() === currentUserId ||
+              (m.user?._id || m.user?.id || m.user)?.toString() === currentUserId) &&
+            ((m.role || "").toLowerCase() === "owner" || (m.role || "").toLowerCase() === "admin")
+        ))
+  );
+
+  const canReassignProject =
+    !isEditMode || isPlatformAdmin || isTaskCreator || isCurrentProjectManager;
 
   const [formData, setFormData] = useState(() =>
     resolveInitialFormData(initialData, isEditMode),
@@ -205,15 +248,18 @@ export const CreateTaskForm = ({
     if (onSubmit) {
       setInternalSubmitting(true);
       try {
+        const effectiveProjectId = canReassignProject
+          ? formData.projectId || null
+          : initialProjectId || null;
         const selectedProj = availableProjects.find(
-          (p) => (p.id || p._id) === formData.projectId,
+          (p) => (p.id || p._id) === effectiveProjectId,
         );
         const submissionData = {
           ...formData,
           subtasks: sanitizeSubtasks(formData.subtasks),
-          projectId: formData.projectId || null,
+          projectId: effectiveProjectId,
           projectName: selectedProj ? selectedProj.name : "Individual Task",
-          isIndividual: !formData.projectId,
+          isIndividual: !effectiveProjectId,
           // For backwards compatibility with single assignedTo:
           assignedTo:
             formData.assignees.length > 0
@@ -446,7 +492,9 @@ export const CreateTaskForm = ({
             <select
               id="task-project-select"
               value={formData.projectId}
+              disabled={!canReassignProject}
               onChange={(e) => {
+                if (!canReassignProject) return;
                 const newProjectId = e.target.value;
                 const newProj = availableProjects.find(
                   (p) => (p.id || p._id) === newProjectId,
@@ -471,7 +519,11 @@ export const CreateTaskForm = ({
                     : prev.assignees,
                 }));
               }}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-primary shadow-xs cursor-pointer"
+              className={`w-full px-3.5 py-2.5 rounded-xl border border-slate-200 text-xs font-semibold shadow-xs ${
+                !canReassignProject
+                  ? "bg-slate-100 text-slate-500 cursor-not-allowed"
+                  : "bg-white text-slate-800 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary"
+              }`}
             >
               <option value="">No Project (Individual / Self Task)</option>
               {availableProjects.map((project) => (
@@ -484,6 +536,11 @@ export const CreateTaskForm = ({
                 </option>
               ))}
             </select>
+            {!canReassignProject && (
+              <p className="text-[11px] text-amber-600 font-medium pt-0.5">
+                Only the task creator, project manager, or an administrator can reassign this task to another project.
+              </p>
+            )}
 
             {/* Display Tagged Members in Selected Project OR Individual Task note */}
             {formData.projectId

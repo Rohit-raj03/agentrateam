@@ -21,6 +21,7 @@ import { CreateTaskModal } from "../../features/tasks/components/CreateTaskModal
 import { TaskDetails } from "../../features/tasks/components/TaskDetails.jsx";
 import { useProjects } from "../../features/projects/hooks/useProjects.js";
 import { useTasks } from "../../features/tasks/hooks/useTasks.js";
+import { useAuth } from "../../features/auth/hooks/useAuth.js";
 
 import { formatDate } from "../../shared/utils/formatDate.js";
 import { ROUTES } from "../../shared/constants/routes.js";
@@ -53,6 +54,67 @@ export const ProjectDetailsPage = () => {
 
   const project = getProjectById(id);
   const projectTasks = getProjectTasks(id);
+
+  const { user: currentUser } = useAuth();
+  const currentUserId = (currentUser?._id || currentUser?.id)?.toString();
+  const isPlatformAdmin = currentUser?.role?.toLowerCase() === "admin";
+  const isProjectOwnerOrAdmin = Boolean(
+    isPlatformAdmin ||
+      (currentUserId &&
+        ((project?.owner?._id || project?.owner)?.toString() === currentUserId ||
+          (project?.manager?._id || project?.manager)?.toString() === currentUserId ||
+          project?.members?.some(
+            (m) =>
+              (m.id?.toString() === currentUserId ||
+                m._id?.toString() === currentUserId ||
+                (m.user?._id || m.user?.id || m.user)?.toString() === currentUserId) &&
+              ((m.role || "").toLowerCase() === "owner" || (m.role || "").toLowerCase() === "admin")
+          )))
+  );
+
+  const isProjectOwner = Boolean(
+    isPlatformAdmin ||
+      (currentUserId &&
+        ((project?.owner?._id || project?.owner)?.toString() === currentUserId ||
+          (project?.manager?._id || project?.manager)?.toString() === currentUserId ||
+          project?.members?.some(
+            (m) =>
+              (m.id?.toString() === currentUserId ||
+                m._id?.toString() === currentUserId ||
+                (m.user?._id || m.user?.id || m.user)?.toString() === currentUserId) &&
+              (m.role || "").toLowerCase() === "owner"
+          )))
+  );
+
+  const isProjectViewer = Boolean(
+    !isPlatformAdmin &&
+      !isProjectOwnerOrAdmin &&
+      currentUserId &&
+      project?.members?.some(
+        (m) =>
+          (m.id?.toString() === currentUserId ||
+            m._id?.toString() === currentUserId ||
+            (m.user?._id || m.user?.id || m.user)?.toString() === currentUserId) &&
+          (m.role || "").toLowerCase() === "viewer"
+      )
+  );
+
+  const isAuthorizedMember = Boolean(
+    isPlatformAdmin ||
+      (currentUserId &&
+        ((project?.owner?._id || project?.owner)?.toString() === currentUserId ||
+          (project?.manager?._id || project?.manager)?.toString() === currentUserId ||
+          project?.members?.some(
+            (m) =>
+              m.id?.toString() === currentUserId ||
+              m._id?.toString() === currentUserId ||
+              (m.user?._id || m.user?.id || m.user)?.toString() === currentUserId
+          )))
+  );
+
+  const canManageProject = isProjectOwnerOrAdmin;
+  const canDeleteProject = isProjectOwner;
+  const canAddTask = isAuthorizedMember && !isProjectViewer;
 
   if (!project) {
     return (
@@ -170,28 +232,34 @@ export const ProjectDetailsPage = () => {
 
           {/* Action Triggers: Edit, Delete, Add Task */}
           <div className="flex items-center gap-2.5 shrink-0">
-            <button
-              onClick={() => setIsEditProjectOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs cursor-pointer"
-              title="Edit project scope and information"
-            >
-              <Edit3 size={14} />
-              <span>Edit</span>
-            </button>
-            <button
-              onClick={() => setIsDeleteModalOpen(true)}
-              className="p-2 rounded-2xl border border-slate-200 hover:border-rose-200 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-all shadow-xs cursor-pointer"
-              title="Delete project"
-            >
-              <Trash2 size={15} />
-            </button>
-            <Button
-              onClick={() => setIsCreateTaskOpen(true)}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all cursor-pointer"
-            >
-              <Plus size={16} />
-              <span>Add Task</span>
-            </Button>
+            {canManageProject && (
+              <button
+                onClick={() => setIsEditProjectOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold transition-all shadow-xs cursor-pointer"
+                title="Edit project scope and information"
+              >
+                <Edit3 size={14} />
+                <span>Edit</span>
+              </button>
+            )}
+            {canDeleteProject && (
+              <button
+                onClick={() => setIsDeleteModalOpen(true)}
+                className="p-2 rounded-2xl border border-slate-200 hover:border-rose-200 hover:bg-rose-50 text-slate-400 hover:text-rose-600 transition-all shadow-xs cursor-pointer"
+                title="Delete project"
+              >
+                <Trash2 size={15} />
+              </button>
+            )}
+            {canAddTask && (
+              <Button
+                onClick={() => setIsCreateTaskOpen(true)}
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all cursor-pointer"
+              >
+                <Plus size={16} />
+                <span>Add Task</span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -250,6 +318,7 @@ export const ProjectDetailsPage = () => {
         <ProjectMembers
           members={project.members || []}
           projectId={project.id || project._id}
+          canManage={canManageProject}
           onTagMember={(member, projectRole, role, tags) =>
             tagMemberToProject(
               project.id || project._id,
@@ -274,7 +343,7 @@ export const ProjectDetailsPage = () => {
           tasks={projectTasks}
           projectName={project.name}
           onTaskClick={(task) => setSelectedTask(task)}
-          onAddTask={() => setIsCreateTaskOpen(true)}
+          onAddTask={canAddTask ? () => setIsCreateTaskOpen(true) : undefined}
         />
       </div>
 

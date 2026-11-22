@@ -13,6 +13,7 @@ import {
   isImageFile,
   getDocumentBadge,
 } from "../../utils/attachmentHelpers.js";
+import { isSafeHttpUrl } from "../../../../shared/utils/isSafeHttpUrl.js";
 
 export const AttachmentItem = ({
   file,
@@ -122,7 +123,7 @@ export const AttachmentItem = ({
 
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0 ml-2">
-        {fileUrl && (
+        {fileUrl && isSafeHttpUrl(fileUrl) && (
           <>
             <a
               href={fileUrl}

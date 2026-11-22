@@ -79,6 +79,7 @@ export const ProjectMembers = ({
   onTagMember,
   onUntagMember,
   onUpdateMemberRole,
+  canManage = true,
 }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
@@ -297,19 +298,21 @@ export const ProjectMembers = ({
             />
           </div>
 
-          <Button
-            type="button"
-            onClick={() => {
-              setEditingMemberId(null);
-              setIsAddModalOpen(true);
-              setAddError("");
-              setSelectedUsersToAdd([]);
-            }}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all cursor-pointer"
-          >
-            <UserPlus size={16} />
-            <span>Add Member</span>
-          </Button>
+          {canManage && (
+            <Button
+              type="button"
+              onClick={() => {
+                setEditingMemberId(null);
+                setIsAddModalOpen(true);
+                setAddError("");
+                setSelectedUsersToAdd([]);
+              }}
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all cursor-pointer"
+            >
+              <UserPlus size={16} />
+              <span>Add Member</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -511,7 +514,7 @@ export const ProjectMembers = ({
                   </div>
 
                   <div className="flex items-center gap-1.5 shrink-0 ml-auto">
-                    {!isOwner && onUpdateMemberRole && (
+                    {canManage && !isOwner && onUpdateMemberRole && (
                       <button
                         type="button"
                         onClick={() => startEditMember(member)}
@@ -523,24 +526,24 @@ export const ProjectMembers = ({
                       </button>
                     )}
 
-                      {!isOwner && onUntagMember && (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (
-                              window.confirm(
-                                `Remove ${member.name} from this project? They will also be removed from assigned tasks.`,
-                              )
-                            ) {
-                              onUntagMember(member.id);
-                            }
-                          }}
-                          title={`Remove ${member.name} from project`}
-                          className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      )}
+                    {canManage && !isOwner && onUntagMember && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (
+                            window.confirm(
+                              `Remove ${member.name} from this project? They will also be removed from assigned tasks.`,
+                            )
+                          ) {
+                            onUntagMember(member.id);
+                          }
+                        }}
+                        title={`Remove ${member.name} from project`}
+                        className="p-1 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    )}
 
                       {isOwner && (
                         <span className="text-[10px] font-semibold text-purple-600 bg-purple-50 px-2 py-0.5 rounded-full">

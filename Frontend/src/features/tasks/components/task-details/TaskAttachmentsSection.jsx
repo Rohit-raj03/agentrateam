@@ -17,6 +17,7 @@ import {
   isImageFile,
   getDocumentBadge,
 } from "../../utils/attachmentHelpers.js";
+import { isSafeHttpUrl } from "../../../../shared/utils/isSafeHttpUrl.js";
 
 /**
  * Feature Subcomponent: TaskAttachmentsSection
@@ -193,7 +194,7 @@ export const TaskAttachmentsSection = ({
 
                 {/* Actions: View & Download always; Delete only in edit mode */}
                 <div className="flex items-center gap-1 shrink-0 ml-2">
-                  {fileUrl ? (
+                  {fileUrl && isSafeHttpUrl(fileUrl) ? (
                     <>
                       <a
                         href={fileUrl}

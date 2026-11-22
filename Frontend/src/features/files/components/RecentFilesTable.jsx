@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useTasks } from "../../tasks/hooks/useTasks.js";
 import { formatDate } from "../../../shared/utils/formatDate.js";
+import { isSafeHttpUrl } from "../../../shared/utils/isSafeHttpUrl.js";
 
 /**
  * Determines appropriate icon based on file type / extension
@@ -170,7 +171,7 @@ export const RecentFilesTable = ({
 
       {filteredFiles.length > 0 ? (
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[560px] text-left text-sm text-slate-600">
+          <table className="w-full min-w-140 text-left text-sm text-slate-600">
             <thead>
               <tr className="border-b border-slate-100 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 <th className="pb-3 px-2">File Name</th>
@@ -226,17 +227,19 @@ export const RecentFilesTable = ({
                     </td>
                     <td className="py-3.5 px-2 text-right">
                       <div className="flex items-center justify-end gap-1">
-                        {file.url && file.url !== "#" && (
-                          <a
-                            href={file.url}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-colors"
-                            title="Download"
-                          >
-                            <Download size={15} />
-                          </a>
-                        )}
+                        {file.url &&
+                          file.url !== "#" &&
+                          isSafeHttpUrl(file.url) && (
+                            <a
+                              href={file.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-1.5 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-slate-100 transition-colors"
+                              title="Download"
+                            >
+                              <Download size={15} />
+                            </a>
+                          )}
                       </div>
                     </td>
                   </tr>

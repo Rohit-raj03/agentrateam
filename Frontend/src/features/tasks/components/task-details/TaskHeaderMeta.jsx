@@ -21,6 +21,8 @@ export const TaskHeaderMeta = ({
   task,
   project,
   canManageTask = false,
+  canEdit = canManageTask,
+  canDelete = canManageTask,
   onOpenEditModal,
   onStartEdit,
   onOpenDeleteModal,
@@ -54,30 +56,34 @@ export const TaskHeaderMeta = ({
         </div>
 
         {/* Action Buttons: Edit and Delete (if authorized) */}
-        {canManageTask && (
+        {(canEdit || canDelete) && (
           <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              onClick={handleEdit}
-              className="!px-3 !py-1.5 text-xs font-bold text-primary hover:text-primary-hover hover:bg-indigo-50 border-indigo-100 shadow-2xs"
-            >
-              <Edit2 size={13} className="mr-1.5" />
-              <span>Edit</span>
-            </Button>
+            {canEdit && (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={handleEdit}
+                className="!px-3 !py-1.5 text-xs font-bold text-primary hover:text-primary-hover hover:bg-indigo-50 border-indigo-100 shadow-2xs"
+              >
+                <Edit2 size={13} className="mr-1.5" />
+                <span>Edit</span>
+              </Button>
+            )}
 
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={onOpenDeleteModal}
-              className="!px-3 !py-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-100/70 shadow-2xs"
-              title="Delete task with mandatory reason"
-            >
-              <Trash2 size={13} className="mr-1.5" />
-              <span>Delete</span>
-            </Button>
+            {canDelete && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={onOpenDeleteModal}
+                className="!px-3 !py-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 hover:bg-rose-50 border border-rose-100/70 shadow-2xs"
+                title="Delete task with mandatory reason"
+              >
+                <Trash2 size={13} className="mr-1.5" />
+                <span>Delete</span>
+              </Button>
+            )}
           </div>
         )}
       </div>
