@@ -53,6 +53,44 @@ export const ALLOWED_ATTACHMENT_EXTENSIONS = Object.freeze([
   "csv",
 ]);
 
+export const EXTENSION_MIME_MAP = Object.freeze({
+  jpg: ["image/jpeg", "image/jpg"],
+  jpeg: ["image/jpeg", "image/jpg"],
+  png: ["image/png"],
+  webp: ["image/webp"],
+  gif: ["image/gif"],
+  pdf: ["application/pdf"],
+  doc: ["application/msword"],
+  docx: [
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/msword",
+    "application/zip",
+    "application/x-zip-compressed",
+  ],
+  xls: ["application/vnd.ms-excel"],
+  xlsx: [
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+    "application/zip",
+    "application/x-zip-compressed",
+  ],
+  ppt: ["application/vnd.ms-powerpoint"],
+  pptx: [
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/vnd.ms-powerpoint",
+    "application/zip",
+    "application/x-zip-compressed",
+  ],
+  txt: ["text/plain"],
+  csv: [
+    "text/csv",
+    "application/csv",
+    "text/comma-separated-values",
+    "text/plain",
+    "application/vnd.ms-excel",
+  ],
+});
+
 /**
  * Validates actual file content signature (Magic Bytes) from raw buffer for images
  * Prevents file extension / MIME-type spoofing
@@ -497,6 +535,26 @@ export const uploadAttachments = (required = true) => {
           return res.status(400).json({
             success: false,
             message: `Invalid file content in '${file.originalname}'. The file signature does not match an authentic ${ext.toUpperCase()} file.`,
+          });
+        }
+
+        const expectedMimes = EXTENSION_MIME_MAP[ext] || [];
+        if (expectedMimes.length > 0 && !expectedMimes.includes(verifiedMime)) {
+          return res.status(400).json({
+            success: false,
+            message: `Extension-to-MIME parity check failed: extension '.${ext}' does not match detected MIME type '${verifiedMime}'.`,
+          });
+        }
+
+        if (
+          file.mimetype &&
+          file.mimetype !== "application/octet-stream" &&
+          expectedMimes.length > 0 &&
+          !expectedMimes.includes(file.mimetype)
+        ) {
+          return res.status(400).json({
+            success: false,
+            message: `Extension-to-MIME parity check failed: extension '.${ext}' does not match declared MIME type '${file.mimetype}'.`,
           });
         }
 

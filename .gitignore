@@ -32,6 +32,7 @@ Backend/.env.local
 .hide
 # Documentation
 doc/
+agentrateam_fullstack_security_audit.md
 
 # Editor directories and files
 .vscode/*
@@ -52,3 +53,4 @@ tests
 Frontend\tests
 audit-reports
 Frontend\tests
+agentra_presentation.html

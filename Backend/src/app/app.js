@@ -11,6 +11,7 @@ import taskRoutes from "../routes/task.routes.js";
 import notificationRoutes from "../routes/notification.routes.js";
 import mediaRoutes from "../routes/media.routes.js";
 import imagekitRoutes from "../routes/imagekit.routes.js";
+import { helmet } from "../middlewares/helmet.middleware.js";
 import {
   notFoundHandler,
   errorHandler,
@@ -19,10 +20,18 @@ import {
 // 1. Initialize Express App
 const app = express();
 
+// Configure trust proxy (SEC-10) and remove framework fingerprint
+app.set("trust proxy", 1);
+app.disable("x-powered-by");
+
 // 2. Middlewares
+app.use(helmet());
+const isProduction =
+  process.env.NODE_ENV === "production" || config.NODE_ENV === "production";
+
 const allowedOrigins = [
   config.CLIENT_URL?.replace(/\/$/, ""),
-  "http://localhost:5173",
+  ...(!isProduction ? ["http://localhost:5173"] : []),
 ].filter(Boolean);
 
 app.use(
@@ -41,8 +50,8 @@ app.use(
     credentials: true,
   }),
 );
-app.use(express.json({ limit: "10mb" }));
-app.use(express.urlencoded({ extended: true, limit: "10mb" }));
+app.use(express.json({ limit: process.env.BODY_LIMIT || "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: process.env.BODY_LIMIT || "10mb" }));
 app.use(cookieParser());
 
 // 3. API Routes
