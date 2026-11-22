@@ -21,6 +21,7 @@ import {
 } from "../controllers/media.controller.js";
 import { protect, requireManagerOrAdmin } from "../middlewares/auth.middleware.js";
 import { uploadSingleImage } from "../middlewares/upload.middleware.js";
+import { uploadRateLimiter } from "../middlewares/rateLimit.middleware.js";
 
 const router = express.Router();
 
@@ -50,7 +51,7 @@ router.route("/:projectId/tasks")
   .post(createTask);
 
 // Cover Image Endpoints
-router.patch("/:projectId/image", uploadSingleImage("image"), updateProjectCover);
+router.patch("/:projectId/image", uploadRateLimiter, uploadSingleImage("image"), updateProjectCover);
 router.delete("/:projectId/image", deleteProjectCover);
 
 // Single Project CRUD

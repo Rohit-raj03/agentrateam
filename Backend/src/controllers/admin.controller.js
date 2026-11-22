@@ -266,7 +266,17 @@ export const deleteUser = async (req, res) => {
  */
 export const createAdminUser = async (req, res) => {
   try {
-    const { name, email, password, role, jobTitle, username, phone } = req.body;
+    const {
+      name,
+      email,
+      password,
+      role,
+      jobTitle,
+      username,
+      phone,
+      department,
+      responsibility,
+    } = req.body;
 
     if (!name || !email) {
       return res.status(400).json({
@@ -308,6 +318,8 @@ export const createAdminUser = async (req, res) => {
       password: finalPassword,
       role: assignedRole,
       jobTitle: jobTitle?.trim() || (assignedRole === "admin" ? "Administrator" : "Team Member"),
+      department: department?.trim() || "",
+      responsibility: responsibility?.trim() || "",
       phone: phone || "",
       isActive: true,
     });
@@ -323,6 +335,8 @@ export const createAdminUser = async (req, res) => {
         username: newUser.username,
         role: newUser.role,
         jobTitle: newUser.jobTitle,
+        department: newUser.department,
+        responsibility: newUser.responsibility,
         isActive: newUser.isActive,
         createdAt: newUser.createdAt,
         ...(isGeneratedPassword && { temporaryPassword: finalPassword }),

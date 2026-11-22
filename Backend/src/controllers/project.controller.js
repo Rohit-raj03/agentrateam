@@ -5,6 +5,11 @@ import TaskModel from "../models/task.model.js";
 import CommentModel from "../models/comment.model.js";
 import NotificationModel from "../models/notification.model.js";
 import { escapeRegex } from "../utils/regex.util.js";
+import {
+  canViewProject,
+  canManageProject,
+  isProjectViewer,
+} from "../services/policy.service.js";
 
 /**
  * Helper to compute task statistics for projects
@@ -118,6 +123,8 @@ export const createProject = async (req, res) => {
         const existingUsers = await UserModel.find({ _id: { $in: uniqueIds } }).select("_id");
         const existingUserSet = new Set(existingUsers.map((u) => u._id.toString()));
 
+        const validProjectRoles = ["Owner", "Admin", "Member", "Viewer"];
+
         for (const [userIdStr, m] of memberMap.entries()) {
           if (existingUserSet.has(userIdStr)) {
             const memberTags =
@@ -136,9 +143,24 @@ export const createProject = async (req, res) => {
                 ? [m.projectRole]
                 : ["Contributor"];
 
+            const matchedRole = m.role
+              ? validProjectRoles.find(
+                  (r) => r.toLowerCase() === String(m.role).toLowerCase().trim()
+                )
+              : null;
+            let assignedRole = matchedRole || m.role || "Member";
+
+            // Non-platform-admins cannot assign Owner role to other members during project creation
+            if (
+              (assignedRole || "").toLowerCase() === "owner" &&
+              req.user.role !== "admin"
+            ) {
+              assignedRole = "Admin";
+            }
+
             initialMembers.push({
               user: new mongoose.Types.ObjectId(userIdStr),
-              role: m.role || "Member",
+              role: assignedRole,
               projectRole: memberTags,
               tags: memberTags,
               joinedAt: new Date(),
@@ -314,7 +336,7 @@ export const getProjectById = async (req, res) => {
       });
     }
 
-    if (!project.isProjectMember(req.user._id, req.user.role)) {
+    if (!canViewProject(project, req.user)) {
       return res.status(403).json({
         success: false,
         message: "You do not have permission to view this project",
@@ -362,12 +384,17 @@ export const updateProject = async (req, res) => {
     }
 
     const isSystemAdmin = req.user.role === "admin";
-    const isSystemManager = req.user.role === "manager";
     const isProjectOwnerOrManager =
       project.owner?.toString() === req.user._id.toString() ||
-      project.manager?.toString() === req.user._id.toString();
+      project.manager?.toString() === req.user._id.toString() ||
+      project.members?.some(
+        (m) =>
+          (m.user?._id || m.user?.id || m.user || m.id || m._id)?.toString() ===
+            req.user._id.toString() &&
+          (m.role || "").toLowerCase() === "owner"
+      );
 
-    if (!isSystemAdmin && !isSystemManager && !isProjectOwnerOrManager && !project.canManageProject(req.user._id, req.user.role)) {
+    if (!canManageProject(project, req.user)) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to update this project. Only Admins and Project Managers can update projects.",
@@ -471,12 +498,47 @@ export const updateProject = async (req, res) => {
                 : [existingMember.projectRole]
               : ["Contributor"];
 
+          const validProjectRoles = ["Owner", "Admin", "Member", "Viewer"];
+          const normalizedIncomingRole = m.role
+            ? validProjectRoles.find((r) => r.toLowerCase() === m.role.toLowerCase().trim())
+            : null;
+          let assignedRole =
+            normalizedIncomingRole ||
+            existingMember?.role ||
+            (userId.toString() === ownerId ? "Owner" : "Member");
+          if (assignedRole && !validProjectRoles.includes(assignedRole)) {
+            assignedRole = "Member";
+          }
+
+          // Prevent project Admins from assigning "Owner"
+          if (
+            assignedRole === "Owner" &&
+            !isSystemAdmin &&
+            !isProjectOwnerOrManager &&
+            (existingMember?.role || "").toLowerCase() !== "owner" &&
+            userId.toString() !== ownerId
+          ) {
+            return res.status(403).json({
+              success: false,
+              message: "Only the project owner or a platform administrator can assign the Owner role.",
+            });
+          }
+
+          // Prevent project Admins from demoting the owner or modifying the owner's role
+          const isTargetOwner =
+            userId.toString() === ownerId ||
+            (existingMember?.role || "").toLowerCase() === "owner";
+
+          if (isTargetOwner && m.role && (m.role || "").toLowerCase() !== "owner" && !isSystemAdmin && !isProjectOwnerOrManager) {
+            return res.status(403).json({
+              success: false,
+              message: "Only the project owner or a platform administrator can modify the Owner's role.",
+            });
+          }
+
           updatedMembers.push({
             user: userId,
-            role:
-              m.role ||
-              existingMember?.role ||
-              (userId.toString() === ownerId ? "Owner" : "Member"),
+            role: assignedRole,
             projectRole: rawRoles,
             tags: rawRoles,
             joinedAt: existingMember?.joinedAt || new Date(),
@@ -536,15 +598,20 @@ export const deleteProject = async (req, res) => {
     }
 
     const isSystemAdmin = req.user.role === "admin";
-    const isSystemManager = req.user.role === "manager";
     const isProjectOwnerOrManager =
       project.owner?.toString() === req.user._id.toString() ||
-      project.manager?.toString() === req.user._id.toString();
+      project.manager?.toString() === req.user._id.toString() ||
+      project.members?.some(
+        (m) =>
+          (m.user?._id || m.user?.id || m.user || m.id || m._id)?.toString() ===
+            req.user._id.toString() &&
+          (m.role || "").toLowerCase() === "owner"
+      );
 
-    if (!isSystemAdmin && !isSystemManager && !isProjectOwnerOrManager) {
+    if (!isSystemAdmin && !isProjectOwnerOrManager) {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to delete this project. Only Admins and Project Managers can delete projects.",
+        message: "You are not authorized to delete this project. Only the project owner or a platform administrator can delete this project.",
       });
     }
 
@@ -594,7 +661,7 @@ export const getProjectMembers = async (req, res) => {
       });
     }
 
-    if (!project.isProjectMember(req.user._id, req.user.role)) {
+    if (!canViewProject(project, req.user)) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to view this project's members",
@@ -644,7 +711,7 @@ export const addProjectMember = async (req, res) => {
       });
     }
 
-    if (!project.canManageProject(req.user._id, req.user.role)) {
+    if (!canManageProject(project, req.user)) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to add members to this project",
@@ -683,7 +750,29 @@ export const addProjectMember = async (req, res) => {
 
     // Validate role
     const validRoles = ["Owner", "Admin", "Member", "Viewer"];
-    const assignedRole = validRoles.includes(role) ? role : "Member";
+    const matchedRole = validRoles.find(
+      (r) => r.toLowerCase() === (role || "").toLowerCase().trim()
+    );
+    const assignedRole = matchedRole || "Member";
+
+    const isPlatformAdmin = req.user.role === "admin";
+    const isOwner =
+      project.owner?.toString() === req.user._id.toString() ||
+      project.manager?.toString() === req.user._id.toString() ||
+      project.members?.some(
+        (m) =>
+          (m.user?._id || m.user?.id || m.user || m.id || m._id)?.toString() ===
+            req.user._id.toString() &&
+          (m.role || "").toLowerCase() === "owner"
+      );
+
+    // Prevent project Admins from assigning "Owner"
+    if (assignedRole === "Owner" && !isPlatformAdmin && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the project owner or a platform administrator can assign the Owner role.",
+      });
+    }
 
     const memberTags =
       Array.isArray(req.body.tags) && req.body.tags.length > 0
@@ -779,7 +868,7 @@ export const updateProjectMemberRole = async (req, res) => {
       });
     }
 
-    if (!project.canManageProject(req.user._id, req.user.role)) {
+    if (!canManageProject(project, req.user)) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to update member roles in this project",
@@ -798,11 +887,45 @@ export const updateProjectMemberRole = async (req, res) => {
       });
     }
 
-    if (role) {
-      const validRoles = ["Owner", "Admin", "Member", "Viewer"];
-      if (validRoles.includes(role)) {
-        member.role = role;
-      }
+    const isPlatformAdmin = req.user.role === "admin";
+    const isOwner =
+      project.owner?.toString() === req.user._id.toString() ||
+      project.manager?.toString() === req.user._id.toString() ||
+      project.members?.some(
+        (m) =>
+          (m.user?._id || m.user?.id || m.user || m.id || m._id)?.toString() ===
+            req.user._id.toString() &&
+          (m.role || "").toLowerCase() === "owner"
+      );
+
+    const validRoles = ["Owner", "Admin", "Member", "Viewer"];
+    const matchedRole = role
+      ? validRoles.find((r) => r.toLowerCase() === role.toLowerCase().trim())
+      : null;
+
+    // Prevent project Admins from assigning "Owner"
+    if (matchedRole === "Owner" && !isPlatformAdmin && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the project owner or a platform administrator can assign the Owner role.",
+      });
+    }
+
+    // Prevent project Admins from demoting the owner or modifying the owner's role
+    const isTargetOwner =
+      (member.role || "").toLowerCase() === "owner" ||
+      (project.owner && project.owner.toString() === userId.toString()) ||
+      (project.manager && project.manager.toString() === userId.toString());
+
+    if (isTargetOwner && matchedRole && matchedRole !== "Owner" && !isPlatformAdmin && !isOwner) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the project owner or a platform administrator can modify the Owner's role.",
+      });
+    }
+
+    if (matchedRole) {
+      member.role = matchedRole;
     }
 
     const newRoles =
@@ -876,7 +999,7 @@ export const removeProjectMember = async (req, res) => {
       });
     }
 
-    if (!project.canManageProject(req.user._id, req.user.role)) {
+    if (!canManageProject(project, req.user)) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to remove members from this project",
@@ -889,6 +1012,29 @@ export const removeProjectMember = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Cannot remove the project owner from the project",
+      });
+    }
+
+    const isSystemAdmin = req.user.role === "admin";
+    const isProjectOwnerOrManager =
+      project.owner?.toString() === req.user._id.toString() ||
+      project.manager?.toString() === req.user._id.toString() ||
+      project.members?.some(
+        (m) =>
+          (m.user?._id || m.user?.id || m.user || m.id || m._id)?.toString() ===
+            req.user._id.toString() &&
+          (m.role || "").toLowerCase() === "owner"
+      );
+
+    const targetMember = project.members.find((m) => {
+      const uid = (m.user?._id || m.user?.id || m.user || m.id || m._id)?.toString();
+      return uid === userId.toString();
+    });
+
+    if (targetMember && (targetMember.role || "").toLowerCase() === "owner" && !isSystemAdmin && !isProjectOwnerOrManager) {
+      return res.status(403).json({
+        success: false,
+        message: "Only the project owner or a platform administrator can remove an Owner.",
       });
     }
 
@@ -951,7 +1097,7 @@ export const getEligibleMembers = async (req, res) => {
     }
 
     // BUG-10: Verify caller is an authorized member or manager of this project
-    if (!project.isProjectMember(req.user._id, req.user.role)) {
+    if (!canViewProject(project, req.user)) {
       return res.status(403).json({
         success: false,
         message: "You are not authorized to view eligible members for this project",

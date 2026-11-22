@@ -208,15 +208,16 @@ projectSchema.pre("save", function (next) {
 // Check if user has management permissions (admin, owner/manager, or project Admin)
 projectSchema.methods.canManageProject = function (userId, userRole) {
   if (userRole === "admin") return true;
-  const uid = userId.toString();
+  const uid = (userId?._id || userId?.id || userId)?.toString();
   const managerId = this.manager?._id?.toString() || this.manager?.toString();
   const ownerId = this.owner?._id?.toString() || this.owner?.toString();
   if (managerId === uid || ownerId === uid) return true;
 
   if (Array.isArray(this.members)) {
     const member = this.members.find((m) => {
-      const mUserId = m.user?._id?.toString() || m.user?.toString();
-      return mUserId === uid && (m.role === "Owner" || m.role === "Admin");
+      const mUserId = (m.user?._id || m.user?.id || m.user || m._id || m.id)?.toString();
+      const mRole = (m.role || "").toLowerCase();
+      return mUserId === uid && (mRole === "owner" || mRole === "admin");
     });
     if (member) return true;
   }
@@ -226,16 +227,42 @@ projectSchema.methods.canManageProject = function (userId, userRole) {
 // Check if user is a member of this project
 projectSchema.methods.isProjectMember = function (userId, userRole) {
   if (userRole === "admin") return true;
-  const uid = userId.toString();
+  const uid = (userId?._id || userId?.id || userId)?.toString();
   const managerId = this.manager?._id?.toString() || this.manager?.toString();
   const ownerId = this.owner?._id?.toString() || this.owner?.toString();
   if (managerId === uid || ownerId === uid) return true;
 
   if (Array.isArray(this.members)) {
     return this.members.some((m) => {
-      const mUserId = m.user?._id?.toString() || m.user?.toString();
+      const mUserId = (m.user?._id || m.user?.id || m.user || m._id || m.id)?.toString();
       return mUserId === uid;
     });
+  }
+  return false;
+};
+
+// Check if user has read-only Viewer permissions in this project
+projectSchema.methods.isProjectViewer = function (userId, userRole) {
+  if (userRole === "admin") return false;
+  const uid = (userId?._id || userId?.id || userId)?.toString();
+  const managerId = this.manager?._id?.toString() || this.manager?.toString();
+  const ownerId = this.owner?._id?.toString() || this.owner?.toString();
+  if (managerId === uid || ownerId === uid) return false;
+
+  if (Array.isArray(this.members)) {
+    const isOwnerOrAdmin = this.members.some((m) => {
+      const mUserId = (m.user?._id || m.user?.id || m.user || m._id || m.id)?.toString();
+      const mRole = (m.role || "").toLowerCase();
+      return mUserId === uid && (mRole === "owner" || mRole === "admin");
+    });
+    if (isOwnerOrAdmin) return false;
+
+    const member = this.members.find((m) => {
+      const mUserId = (m.user?._id || m.user?.id || m.user || m._id || m.id)?.toString();
+      const mRole = (m.role || "").toLowerCase();
+      return mUserId === uid && mRole === "viewer";
+    });
+    if (member) return true;
   }
   return false;
 };

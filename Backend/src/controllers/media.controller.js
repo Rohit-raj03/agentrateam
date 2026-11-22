@@ -9,6 +9,7 @@ import {
   MEDIA_FOLDERS,
 } from "../services/imagekit.service.js";
 import { checkFileDeletionAuthorization } from "../utils/fileAuth.util.js";
+import { canManageProject } from "../services/policy.service.js";
 
 /**
  * Validates MongoDB ObjectId
@@ -335,9 +336,7 @@ export const updateProjectCover = async (req, res) => {
       });
     }
 
-    const canManage = project.canManageProject
-      ? project.canManageProject(req.user._id, req.user.role)
-      : req.user.role === "admin" || project.manager?.toString() === req.user._id.toString();
+    const canManage = canManageProject(project, req.user);
 
     if (!canManage) {
       return res.status(403).json({
@@ -419,9 +418,7 @@ export const deleteProjectCover = async (req, res) => {
       });
     }
 
-    const canManage = project.canManageProject
-      ? project.canManageProject(req.user._id, req.user.role)
-      : req.user.role === "admin" || project.manager?.toString() === req.user._id.toString();
+    const canManage = canManageProject(project, req.user);
 
     if (!canManage) {
       return res.status(403).json({
@@ -474,7 +471,17 @@ export const genericUpload = async (req, res) => {
       });
     }
 
-    const folder = req.body.folder || MEDIA_FOLDERS.GENERAL;
+    const allowedFolders = Object.values(MEDIA_FOLDERS);
+    let folder = MEDIA_FOLDERS.GENERAL;
+    if (req.body.folder) {
+      if (!allowedFolders.includes(req.body.folder)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid folder. Allowed folders are: ${allowedFolders.join(", ")}`,
+        });
+      }
+      folder = req.body.folder;
+    }
 
     const result = await uploadImage({
       buffer: req.file.buffer,

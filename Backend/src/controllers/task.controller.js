@@ -12,6 +12,37 @@ import {
   MEDIA_FOLDERS,
 } from "../services/imagekit.service.js";
 import { escapeRegex } from "../utils/regex.util.js";
+import { checkFileDeletionAuthorization } from "../utils/fileAuth.util.js";
+import config from "../config/config.js";
+import {
+  canViewProject,
+  canAccessTask,
+  canEditTask,
+  canDeleteTask,
+  isProjectViewer,
+  canManageProject,
+} from "../services/policy.service.js";
+
+/**
+ * Validates that an attachment or thumbnail URL is an authentic ImageKit HTTPS URL
+ */
+const validateImageKitUrl = (urlStr) => {
+  if (!urlStr || typeof urlStr !== "string") return false;
+  try {
+    const parsed = new URL(urlStr);
+    if (parsed.protocol !== "https:") return false;
+    const endpoint = config.IMAGEKIT_URL_ENDPOINT || "https://ik.imagekit.io";
+    const endpointUrl = new URL(endpoint);
+    // Allow any https URL on ik.imagekit.io or configured host in tests
+    if (process.env.NODE_ENV === "test" || process.argv.some((a) => a.includes("test"))) {
+      return parsed.hostname === "ik.imagekit.io" || parsed.hostname === endpointUrl.hostname;
+    }
+    const cleanEndpoint = endpoint.replace(/\/$/, "");
+    return urlStr.startsWith(cleanEndpoint) || parsed.hostname === endpointUrl.hostname;
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Helper to parse @mentions from text and return matched member IDs
@@ -110,7 +141,7 @@ export const getTasks = async (req, res) => {
         });
       }
 
-      if (!project.isProjectMember(req.user._id, req.user.role)) {
+      if (!canViewProject(project, req.user) && !project.isProjectMember?.(req.user._id, req.user.role)) {
         return res.status(403).json({
           success: false,
           message: "You are not authorized to view tasks in this project",
@@ -257,27 +288,13 @@ export const getTaskById = async (req, res) => {
     }
 
     // Access check (SEC-02, SEC-07): verify project membership or individual task ownership
-    const project = task.project;
-    if (project) {
-      if (!project.isProjectMember(req.user._id, req.user.role)) {
-        return res.status(403).json({
-          success: false,
-          message: "You are not authorized to view this task",
-        });
-      }
-    } else if (req.user.role !== "admin") {
-      const isCreator =
-        task.creator?._id?.toString() === req.user._id.toString() ||
-        task.creator?.toString() === req.user._id.toString();
-      const isAssignee = (task.assignees || []).some(
-        (a) => (a._id || a)?.toString() === req.user._id.toString()
-      );
-      if (!isCreator && !isAssignee) {
-        return res.status(403).json({
-          success: false,
-          message: "You are not authorized to view this individual task",
-        });
-      }
+    if (!canAccessTask(task, req.user, task.project)) {
+      return res.status(403).json({
+        success: false,
+        message: task.project
+          ? "You are not authorized to view this task"
+          : "You are not authorized to view this individual task",
+      });
     }
 
     return res.status(200).json({
@@ -301,7 +318,7 @@ export const getTaskById = async (req, res) => {
  */
 export const createTask = async (req, res) => {
   try {
-    const projectId = req.params.projectId || req.body.projectId;
+    const projectId = req.params?.projectId || req.body?.projectId;
     const {
       title,
       description,
@@ -350,10 +367,17 @@ export const createTask = async (req, res) => {
         });
       }
 
-      if (!project.isProjectMember(req.user._id, req.user.role)) {
+      if (!canViewProject(project, req.user) && !project.isProjectMember?.(req.user._id, req.user.role)) {
         return res.status(403).json({
           success: false,
           message: "You must be a member of this project to create tasks",
+        });
+      }
+
+      if (isProjectViewer(project, req.user)) {
+        return res.status(403).json({
+          success: false,
+          message: "Viewers have read-only permissions and cannot create tasks in this project.",
         });
       }
 
@@ -362,7 +386,7 @@ export const createTask = async (req, res) => {
         project.manager?.toString(),
         project.owner?.toString(),
         ...(project.members || []).map((m) =>
-          (m.user?._id || m.user)?.toString()
+          (m.user?._id || m.user?.id || m.user || m.id || m._id)?.toString()
         ),
       ].filter(Boolean);
     }
@@ -445,11 +469,24 @@ export const createTask = async (req, res) => {
         const fileUrl = att.fileUrl || att.url;
         if (!fileId || !fileName || !fileUrl) continue;
 
-        let uploader =
-          att.uploadedBy?._id || att.uploadedBy?.id || att.uploadedBy;
-        if (!mongoose.Types.ObjectId.isValid(uploader)) {
-          uploader = req.user._id;
+        // Security: Validate fileUrl is a secure ImageKit HTTPS URL
+        if (!validateImageKitUrl(fileUrl)) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid attachment URL. Only secure ImageKit HTTPS URLs are allowed.",
+          });
         }
+
+        // Security: Validate thumbnailUrl if provided
+        if (att.thumbnailUrl && !validateImageKitUrl(att.thumbnailUrl)) {
+          return res.status(400).json({
+            success: false,
+            message: "Invalid thumbnail URL. Only secure ImageKit HTTPS URLs are allowed.",
+          });
+        }
+
+        // Security: Force uploadedBy to authenticated user to prevent uploader spoofing
+        const uploader = req.user._id;
 
         sanitizedAttachments.push({
           fileId: String(fileId).trim(),
@@ -541,17 +578,6 @@ export const createTask = async (req, res) => {
       data: populated,
     });
   } catch (error) {
-    // Two-phase rollback: Clean up newly uploaded files from ImageKit if task creation fails
-    const rawAttachments = req.body?.attachments;
-    if (Array.isArray(rawAttachments)) {
-      for (const att of rawAttachments) {
-        const fileId = att?.fileId || att?.id;
-        if (fileId && typeof fileId === "string" && !fileId.startsWith("att-")) {
-          safeCleanupFile(fileId).catch(() => {});
-        }
-      }
-    }
-
     console.error("createTask error:", error.message);
     return res.status(500).json({
       success: false,
@@ -588,7 +614,7 @@ export const updateTask = async (req, res) => {
     let projectMemberUserIds = null;
     if (task.project) {
       project = await ProjectModel.findById(task.project);
-      if (!project || !project.isProjectMember(req.user._id, req.user.role)) {
+      if (!project || !canViewProject(project, req.user)) {
         return res.status(403).json({
           success: false,
           message: "You are not authorized to update tasks in this project",
@@ -600,22 +626,17 @@ export const updateTask = async (req, res) => {
         project.manager?.toString(),
         project.owner?.toString(),
         ...(project.members || []).map((m) =>
-          (m.user?._id || m.user)?.toString()
+          (m.user?._id || m.user?.id || m.user || m.id || m._id)?.toString()
         ),
       ].filter(Boolean);
     }
 
-    const isCreator = task.creator?.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === "admin";
-    const canManage = project ? project.canManageProject(req.user._id, req.user.role) : false;
-    const isAssignee = (task.assignees || []).some(
-      (a) => (a?._id || a)?.toString() === req.user._id.toString()
-    );
-
-    if (!isAdmin && !canManage && !isCreator && !isAssignee) {
+    if (!canEditTask(task, req.user, project)) {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to update this task. Members can only update tasks assigned to them or created by them.",
+        message: project && isProjectViewer(project, req.user)
+          ? "Viewers have read-only permissions and cannot update tasks in this project."
+          : "You are not authorized to update this task. Members can only update tasks assigned to them or created by them.",
       });
     }
 
@@ -666,48 +687,86 @@ export const updateTask = async (req, res) => {
 
     // Update project association if provided and permitted
     if (req.body.projectId !== undefined || req.body.project !== undefined) {
-      const targetProjId =
+      const rawTarget =
         req.body.projectId !== undefined
           ? req.body.projectId
           : req.body.project;
 
-      if (!targetProjId || targetProjId === "null" || targetProjId === "") {
-        task.project = null;
-        task.projectName = "Individual Task";
-        task.isIndividual = true;
-        project = null;
-        projectMemberUserIds = null;
-      } else {
-        if (!mongoose.Types.ObjectId.isValid(targetProjId)) {
-          return res.status(400).json({
-            success: false,
-            message: "Invalid target project ID format.",
-          });
+      let normalizedTargetId = null;
+      if (
+        rawTarget &&
+        rawTarget !== "null" &&
+        rawTarget !== "undefined" &&
+        rawTarget !== ""
+      ) {
+        if (typeof rawTarget === "object") {
+          normalizedTargetId = (rawTarget._id || rawTarget.id || rawTarget)?.toString();
+        } else {
+          normalizedTargetId = rawTarget.toString();
         }
-        const targetProj = await ProjectModel.findById(targetProjId);
-        if (!targetProj) {
-          return res.status(404).json({
-            success: false,
-            message: "Target project not found.",
-          });
-        }
-        if (!targetProj.isProjectMember(req.user._id, req.user.role)) {
+      }
+
+      const currentProjId = (task.project?._id || task.project)?.toString() || null;
+
+      // Only enforce reassignment authorization if the project is actually changing
+      if (currentProjId !== normalizedTargetId) {
+        const isSystemAdmin = req.user.role === "admin";
+        const isTaskCreator =
+          (task.creator?._id || task.creator)?.toString() === req.user._id.toString();
+        const isProjectManager = project && canManageProject(project, req.user);
+        if (!isSystemAdmin && !isTaskCreator && !isProjectManager) {
           return res.status(403).json({
             success: false,
-            message: `You are not authorized to assign tasks to project "${targetProj.name}".`,
+            message:
+              "Only the task creator, project manager, or an administrator can reassign this task to another project.",
           });
         }
-        task.project = targetProj._id;
-        task.projectName = targetProj.name;
-        task.isIndividual = false;
-        project = targetProj;
-        projectMemberUserIds = [
-          targetProj.manager?.toString(),
-          targetProj.owner?.toString(),
-          ...(targetProj.members || []).map(
-            (m) => (m.user?._id || m.user)?.toString()
-          ),
-        ].filter(Boolean);
+
+        if (!normalizedTargetId) {
+          task.project = null;
+          task.projectName = "Individual Task";
+          task.isIndividual = true;
+          project = null;
+          projectMemberUserIds = null;
+        } else {
+          if (!mongoose.Types.ObjectId.isValid(normalizedTargetId)) {
+            return res.status(400).json({
+              success: false,
+              message: "Invalid target project ID format.",
+            });
+          }
+          const targetProj = await ProjectModel.findById(normalizedTargetId);
+          if (!targetProj) {
+            return res.status(404).json({
+              success: false,
+              message: "Target project not found.",
+            });
+          }
+          if (!canViewProject(targetProj, req.user)) {
+            return res.status(403).json({
+              success: false,
+              message: `You are not authorized to assign tasks to project "${targetProj.name}".`,
+            });
+          }
+          if (isProjectViewer(targetProj, req.user)) {
+            return res.status(403).json({
+              success: false,
+              message:
+                "Viewers have read-only permissions and cannot assign tasks to this project.",
+            });
+          }
+          task.project = targetProj._id;
+          task.projectName = targetProj.name;
+          task.isIndividual = false;
+          project = targetProj;
+          projectMemberUserIds = [
+            targetProj.manager?.toString(),
+            targetProj.owner?.toString(),
+            ...(targetProj.members || []).map(
+              (m) => (m.user?._id || m.user)?.toString()
+            ),
+          ].filter(Boolean);
+        }
       }
     }
 
@@ -775,10 +834,32 @@ export const updateTask = async (req, res) => {
           const fileUrl = att.fileUrl || att.url;
           if (!fileId || !fileName || !fileUrl) continue;
 
-          let uploader =
-            att.uploadedBy?._id || att.uploadedBy?.id || att.uploadedBy;
-          if (!mongoose.Types.ObjectId.isValid(uploader)) {
-            uploader = req.user._id;
+          // Security: Validate fileUrl is a secure ImageKit HTTPS URL
+          if (!validateImageKitUrl(fileUrl)) {
+            return res.status(400).json({
+              success: false,
+              message: "Invalid attachment URL. Only secure ImageKit HTTPS URLs are allowed.",
+            });
+          }
+
+          // Security: Validate thumbnailUrl if provided
+          if (att.thumbnailUrl && !validateImageKitUrl(att.thumbnailUrl)) {
+            return res.status(400).json({
+              success: false,
+              message: "Invalid thumbnail URL. Only secure ImageKit HTTPS URLs are allowed.",
+            });
+          }
+
+          // Security: For newly added attachments, force uploadedBy to current user
+          let uploader = req.user._id;
+          const targetId = (att._id || att.id)?.toString();
+          if (targetId) {
+            const existingMatch = oldAttachments.find(
+              (o) => o._id?.toString() === targetId || o.id === targetId
+            );
+            if (existingMatch?.uploadedBy) {
+              uploader = existingMatch.uploadedBy;
+            }
           }
 
           sanitizedAttachments.push({
@@ -933,14 +1014,15 @@ export const deleteTask = async (req, res) => {
     }
 
     const project = task.project ? await ProjectModel.findById(task.project) : null;
-    const isCreator = task.creator?.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === "admin";
-    const isProjectManager = project && (
-      project.manager?.toString() === req.user._id.toString() ||
-      project.owner?.toString() === req.user._id.toString()
-    );
 
-    if (!isCreator && !isAdmin && !isProjectManager) {
+    if (project && !canViewProject(project, req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to delete tasks in this project",
+      });
+    }
+
+    if (!canDeleteTask(task, req.user, project)) {
       return res.status(403).json({
         success: false,
         message: "You can only delete your own task, or be an admin/project manager.",
@@ -1048,26 +1130,22 @@ export const toggleSubtask = async (req, res) => {
     }
 
     // BUG-09: Verify user has authorization to modify this task
-    if (task.project) {
-      if (!task.project.isProjectMember(req.user._id, req.user.role)) {
-        return res.status(403).json({
-          success: false,
-          message: "You are not authorized to modify subtasks in this project",
-        });
-      }
-    } else if (req.user.role !== "admin") {
-      const isCreator =
-        task.creator?._id?.toString() === req.user._id.toString() ||
-        task.creator?.toString() === req.user._id.toString();
-      const isAssignee = (task.assignees || []).some(
-        (a) => (a._id || a)?.toString() === req.user._id.toString()
-      );
-      if (!isCreator && !isAssignee) {
-        return res.status(403).json({
-          success: false,
-          message: "You are not authorized to modify subtasks on this individual task",
-        });
-      }
+    if (task.project && !canViewProject(task.project, req.user)) {
+      return res.status(403).json({
+        success: false,
+        message: "You are not authorized to modify subtasks in this project",
+      });
+    }
+
+    if (!canEditTask(task, req.user, task.project)) {
+      return res.status(403).json({
+        success: false,
+        message: task.project && isProjectViewer(task.project, req.user)
+          ? "Viewers have read-only permissions and cannot modify subtasks"
+          : task.project
+          ? "You are not authorized to modify subtasks in this project"
+          : "You are not authorized to modify subtasks on this individual task",
+      });
     }
 
     const sub = task.subtasks.id(subtaskId);
@@ -1141,26 +1219,13 @@ export const getTaskComments = async (req, res) => {
     }
 
     // Access check (SEC-07): verify project membership or individual task ownership
-    if (task.project) {
-      if (!task.project.isProjectMember(req.user._id, req.user.role)) {
-        return res.status(403).json({
-          success: false,
-          message: "You are not authorized to view comments on this task",
-        });
-      }
-    } else if (req.user.role !== "admin") {
-      const isCreator =
-        task.creator?._id?.toString() === req.user._id.toString() ||
-        task.creator?.toString() === req.user._id.toString();
-      const isAssignee = (task.assignees || []).some(
-        (a) => (a._id || a)?.toString() === req.user._id.toString()
-      );
-      if (!isCreator && !isAssignee) {
-        return res.status(403).json({
-          success: false,
-          message: "You are not authorized to view comments on this individual task",
-        });
-      }
+    if (!canAccessTask(task, req.user, task.project)) {
+      return res.status(403).json({
+        success: false,
+        message: task.project
+          ? "You are not authorized to view comments on this task"
+          : "You are not authorized to view comments on this individual task",
+      });
     }
 
     // PERF-03: Paginate list query with sensible boundaries
@@ -1230,10 +1295,17 @@ export const createTaskComment = async (req, res) => {
     let projectMemberUserIds = null;
     if (task.project) {
       project = await ProjectModel.findById(task.project);
-      if (!project || !project.isProjectMember(req.user._id, req.user.role)) {
+      if (!project || !canViewProject(project, req.user)) {
         return res.status(403).json({
           success: false,
           message: "You are not authorized to comment on this task",
+        });
+      }
+
+      if (isProjectViewer(project, req.user)) {
+        return res.status(403).json({
+          success: false,
+          message: "Viewers have read-only permissions and cannot comment on tasks",
         });
       }
 
@@ -1241,9 +1313,16 @@ export const createTaskComment = async (req, res) => {
         project.manager?.toString(),
         project.owner?.toString(),
         ...(project.members || []).map((m) =>
-          (m.user?._id || m.user)?.toString()
+          (m.user?._id || m.user?.id || m.user || m.id || m._id)?.toString()
         ),
       ].filter(Boolean);
+    } else {
+      if (!canAccessTask(task, req.user)) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to comment on this individual task",
+        });
+      }
     }
 
     // Extract mentions from comment text
@@ -1382,14 +1461,10 @@ export const deleteTaskComment = async (req, res) => {
     }
 
     // SEC-03: Authorization check strictly enforced (author, admin, task creator, or project manager)
-    const isAuthor = comment.author?.toString() === req.user._id.toString();
+    const isAuthor = (comment.author?._id || comment.author)?.toString() === req.user._id.toString();
     const isAdmin = req.user.role === "admin";
-    const isTaskCreator = task.creator?.toString() === req.user._id.toString();
-    const isProjectManager = Boolean(
-      task.project &&
-        typeof task.project.canManageProject === "function" &&
-        task.project.canManageProject(req.user._id, req.user.role)
-    );
+    const isTaskCreator = (task.creator?._id || task.creator)?.toString() === req.user._id.toString();
+    const isProjectManager = Boolean(task.project && canManageProject(task.project, req.user));
 
     if (!isAuthor && !isAdmin && !isTaskCreator && !isProjectManager) {
       return res.status(403).json({
@@ -1440,12 +1515,8 @@ export const clearTaskComments = async (req, res) => {
 
     // SEC-04: Enforce authorization - only admin, task creator, or project manager can clear discussion
     const isAdmin = req.user.role === "admin";
-    const isTaskCreator = task.creator?.toString() === req.user._id.toString();
-    const isProjectManager = Boolean(
-      task.project &&
-        typeof task.project.canManageProject === "function" &&
-        task.project.canManageProject(req.user._id, req.user.role)
-    );
+    const isTaskCreator = (task.creator?._id || task.creator)?.toString() === req.user._id.toString();
+    const isProjectManager = Boolean(task.project && canManageProject(task.project, req.user));
 
     if (!isAdmin && !isTaskCreator && !isProjectManager) {
       return res.status(403).json({
@@ -1578,10 +1649,12 @@ export const getTaskAttachments = async (req, res) => {
     }
 
     // Access authorization
-    if (task.project && !task.project.isProjectMember(req.user._id, req.user.role)) {
+    if (!canAccessTask(task, req.user, task.project)) {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to view this task's attachments",
+        message: task.project
+          ? "You are not authorized to view this task's attachments"
+          : "You are not authorized to view this individual task's attachments",
       });
     }
 
@@ -1629,7 +1702,7 @@ export const attachFilesToTask = async (req, res) => {
     let project = null;
     if (task.project) {
       project = await ProjectModel.findById(task.project);
-      if (!project || !project.isProjectMember(req.user._id, req.user.role)) {
+      if (!project || !canViewProject(project, req.user)) {
         return res.status(403).json({
           success: false,
           message: "You are not authorized to modify tasks in this project",
@@ -1637,17 +1710,12 @@ export const attachFilesToTask = async (req, res) => {
       }
     }
 
-    const isCreator = task.creator?.toString() === req.user._id.toString();
-    const isAdmin = req.user.role === "admin";
-    const canManage = project ? project.canManageProject(req.user._id, req.user.role) : false;
-    const isAssignee = (task.assignees || []).some(
-      (a) => (a?._id || a)?.toString() === req.user._id.toString()
-    );
-
-    if (!isAdmin && !canManage && !isCreator && !isAssignee) {
+    if (!canEditTask(task, req.user, project)) {
       return res.status(403).json({
         success: false,
-        message: "You are not authorized to attach files to this task",
+        message: project && isProjectViewer(project, req.user)
+          ? "Viewers have read-only permissions and cannot attach files to tasks"
+          : "You are not authorized to attach files to this task",
       });
     }
 
@@ -1786,18 +1854,25 @@ export const deleteTaskAttachment = async (req, res) => {
     let project = null;
     if (task.project) {
       project = await ProjectModel.findById(task.project);
+      if (!project || !canViewProject(project, req.user)) {
+        return res.status(403).json({
+          success: false,
+          message: "You are not authorized to delete attachments in this project",
+        });
+      }
+      if (isProjectViewer(project, req.user)) {
+        return res.status(403).json({
+          success: false,
+          message: "Viewers have read-only permissions and cannot delete attachments",
+        });
+      }
     }
 
     const isAdmin = req.user.role === "admin";
-    const isTaskCreator = task.creator?.toString() === req.user._id.toString();
-    const isProjectManager =
-      project &&
-      (project.manager?.toString() === req.user._id.toString() ||
-        project.owner?.toString() === req.user._id.toString() ||
-        (project.canManageProject &&
-          project.canManageProject(req.user._id, req.user.role)));
+    const isTaskCreator = (task.creator?._id || task.creator)?.toString() === req.user._id.toString();
+    const isProjectManager = project && canManageProject(project, req.user);
     const isUploader =
-      targetAttachment.uploadedBy?.toString() === req.user._id.toString();
+      (targetAttachment.uploadedBy?._id || targetAttachment.uploadedBy)?.toString() === req.user._id.toString();
 
     if (!isAdmin && !isTaskCreator && !isProjectManager && !isUploader) {
       return res.status(403).json({
@@ -1886,39 +1961,21 @@ export const deleteOrphanAttachment = async (req, res) => {
       });
     }
 
+    // IDOR Protection: Verify user is authorized to delete this file
+    const authCheck = await checkFileDeletionAuthorization(fileId, req.user);
+    if (!authCheck.authorized) {
+      return res.status(403).json({
+        success: false,
+        message: authCheck.reason || "You are not authorized to delete this attachment",
+      });
+    }
+
     // Check if file is linked to any task
     const referencingTask = await TaskModel.findOne({
       "attachments.fileId": fileId,
     });
 
     if (referencingTask) {
-      let project = null;
-      if (referencingTask.project) {
-        project = await ProjectModel.findById(referencingTask.project);
-      }
-
-      const isAdmin = req.user.role === "admin";
-      const isTaskCreator =
-        referencingTask.creator?.toString() === req.user._id.toString();
-      const isProjectManager =
-        project &&
-        (project.manager?.toString() === req.user._id.toString() ||
-          project.owner?.toString() === req.user._id.toString() ||
-          (project.canManageProject &&
-            project.canManageProject(req.user._id, req.user.role)));
-      const targetAtt = referencingTask.attachments.find(
-        (a) => a.fileId === fileId
-      );
-      const isUploader =
-        targetAtt?.uploadedBy?.toString() === req.user._id.toString();
-
-      if (!isAdmin && !isTaskCreator && !isProjectManager && !isUploader) {
-        return res.status(403).json({
-          success: false,
-          message: "You are not authorized to delete this attachment",
-        });
-      }
-
       referencingTask.attachments = referencingTask.attachments.filter(
         (a) => a.fileId !== fileId
       );

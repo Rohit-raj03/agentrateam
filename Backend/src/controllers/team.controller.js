@@ -43,10 +43,23 @@ export const getTeams = async (req, res) => {
 export const getTeamMembers = async (req, res) => {
   try {
     const users = await UserModel.find({ isActive: true }).select("-password");
+    const safeUsers = users.map((u) => {
+      const obj = u.toObject ? u.toObject() : { ...u };
+      return {
+        _id: obj._id,
+        id: obj.id || obj._id,
+        name: obj.name,
+        username: obj.username,
+        email: obj.email,
+        avatar: obj.avatar,
+        jobTitle: obj.jobTitle,
+        department: obj.department,
+      };
+    });
     return res.status(200).json({
       success: true,
-      count: users.length,
-      data: users,
+      count: safeUsers.length,
+      data: safeUsers,
     });
   } catch (error) {
     console.error("getTeamMembers error:", error.message);
