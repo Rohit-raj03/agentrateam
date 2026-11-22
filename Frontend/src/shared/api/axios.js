@@ -10,6 +10,7 @@ import { clearProjectsCache } from '../../features/projects/hooks/useProjects.js
 
 const axiosInstance = axios.create({
   baseURL: env.API_BASE_URL,
+  withCredentials: true,
 });
 
 let isRefreshing = false;
@@ -31,6 +32,11 @@ const handleSessionTermination = () => {
   storage.remove('auth_user');
   storage.remove('auth_refresh_token');
   storage.remove('agentrateam');
+  storage.remove('user_settings_notifications');
+  if (axiosInstance.defaults?.headers?.common) {
+    delete axiosInstance.defaults.headers.common['Authorization'];
+    delete axiosInstance.defaults.headers.common['authorization'];
+  }
   try {
     store.dispatch(logout());
     clearTeamCache();
@@ -47,7 +53,7 @@ const handleSessionTermination = () => {
 
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = storage.get('auth_token');
+    const token = store.getState()?.auth?.token;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -79,14 +85,11 @@ axiosInstance.interceptors.response.use(
       originalRequest?.url?.includes('/auth/refresh-token') ||
       originalRequest?.url?.includes('/auth/refresh');
 
-    const refreshToken = storage.get('auth_refresh_token');
-
     // Silent token refresh interceptor with queueing and session rotation
     if (
       error.response?.status === 401 &&
       !isAuthAttempt &&
-      !originalRequest?._retry &&
-      refreshToken
+      !originalRequest?._retry
     ) {
       if (isRefreshing) {
         return new Promise((resolve, reject) => {
@@ -106,7 +109,7 @@ axiosInstance.interceptors.response.use(
       try {
         const res = await axios.post(
           `${env.API_BASE_URL}/auth/refresh-token`,
-          { refreshToken },
+          {},
           { withCredentials: true }
         );
         const data = res.data?.data || res.data;
@@ -115,20 +118,19 @@ axiosInstance.interceptors.response.use(
           throw new Error('Missing access token in refresh response');
         }
 
-        storage.set('auth_token', newAccessToken);
-        if (data?.refreshToken) {
-          storage.set('auth_refresh_token', data.refreshToken);
-        }
-
-        // Sync Redux state and Axios default headers
+        // Sync Redux state in-memory only (no localStorage for token/refreshToken)
         store.dispatch(
           setCredentials({
             accessToken: newAccessToken,
-            refreshToken: data?.refreshToken,
             user: data?.user,
           })
         );
-        axiosInstance.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`;
+
+        // Remove stale default headers
+        if (axiosInstance.defaults?.headers?.common) {
+          delete axiosInstance.defaults.headers.common['Authorization'];
+          delete axiosInstance.defaults.headers.common['authorization'];
+        }
 
         originalRequest.headers = originalRequest.headers || {};
         originalRequest.headers.Authorization = `Bearer ${newAccessToken}`;

@@ -56,7 +56,13 @@ export const Sidebar = ({ isOpen, onClose }) => {
     { label: "Schedule", icon: Calendar, to: ROUTES.TIMELINE },
     { label: "Tasks", icon: BookOpen, to: ROUTES.TASKS },
     { label: "Projects", icon: FolderKanban, to: ROUTES.PROJECTS },
-    { label: "Messages", icon: Send, to: ROUTES.MESSAGES },
+    {
+      label: "Messages",
+      icon: Send,
+      to: ROUTES.MESSAGES,
+      disabled: true,
+      badge: "Soon",
+    },
     { label: "Files", icon: FolderPlus, to: ROUTES.FILES },
   ];
 
@@ -114,6 +120,31 @@ export const Sidebar = ({ isOpen, onClose }) => {
             <nav className="flex-1 flex flex-col gap-2.5 px-3 py-4 overflow-y-auto">
               {primaryNavItems.map((item) => {
                 const Icon = item.icon;
+
+                if (item.disabled) {
+                  return (
+                    <div
+                      key={item.label}
+                      className="flex items-center justify-between px-3.5 h-11 rounded-xl text-slate-400 bg-slate-50/60 cursor-not-allowed select-none text-sm border border-slate-100/60"
+                      aria-disabled="true"
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon
+                          size={20}
+                          strokeWidth={2.2}
+                          className="text-slate-300"
+                        />
+                        <span className="truncate font-medium text-slate-400">
+                          {item.label}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-slate-100 text-slate-400 border border-slate-200/80">
+                        {item.badge || "Soon"}
+                      </span>
+                    </div>
+                  );
+                }
+
                 return (
                   <NavLink
                     key={item.to}
@@ -171,14 +202,15 @@ export const Sidebar = ({ isOpen, onClose }) => {
         <button
           type="button"
           onClick={handleToggleCollapse}
-          className="absolute -right-3.5 top-20 -translate-y-1/2 z-50 w-7 h-7 rounded-full bg-[#F0F3F8] border border-slate-200/90 shadow-xs text-slate-500 hover:text-slate-800 hover:bg-[#E4E9F2] flex items-center justify-center transition-all cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#4361EE]/20"
+          className="absolute -right-3 top-10 -translate-y-1/2 z-20 flex h-7 w-7 cursor-pointer items-center justify-center bg-transparent text-slate-500 transition-colors hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4361EE]/30 rounded-sm"
           title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          aria-expanded={!isCollapsed}
         >
           {isCollapsed ? (
-            <PanelLeftOpen size={14} strokeWidth={2.2} />
+            <PanelLeftOpen size={17} strokeWidth={1.75} />
           ) : (
-            <PanelLeftClose size={14} strokeWidth={2.2} />
+            <PanelLeftClose size={17} strokeWidth={1.75} />
           )}
         </button>
 
@@ -221,6 +253,56 @@ export const Sidebar = ({ isOpen, onClose }) => {
         >
           {primaryNavItems.map((item) => {
             const Icon = item.icon;
+
+            if (item.disabled) {
+              return (
+                <div
+                  key={item.label}
+                  onMouseEnter={() =>
+                    isCollapsed && setActiveTooltip(item.label)
+                  }
+                  onFocus={() => isCollapsed && setActiveTooltip(item.label)}
+                  onBlur={() => setActiveTooltip(null)}
+                  aria-disabled="true"
+                  className={`group relative flex items-center transition-all duration-150 cursor-not-allowed select-none ${
+                    isCollapsed
+                      ? "w-11 h-11 justify-center mx-auto rounded-xl opacity-50 hover:bg-slate-50/50"
+                      : "w-full h-11 px-3.5 gap-3 rounded-xl opacity-60 hover:bg-slate-50/50"
+                  }`}
+                >
+                  <Icon
+                    size={20}
+                    strokeWidth={2.2}
+                    className="shrink-0 text-slate-400"
+                  />
+
+                  {!isCollapsed && (
+                    <>
+                      <span className="text-[13.5px] tracking-tight truncate font-medium text-slate-400">
+                        {item.label}
+                      </span>
+                      <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-400 border border-slate-200/80">
+                        {item.badge || "Soon"}
+                      </span>
+                    </>
+                  )}
+
+                  {/* Tooltip in Compact Collapsed Mode */}
+                  {isCollapsed && activeTooltip === item.label && (
+                    <span
+                      className="absolute left-[calc(100%+12px)] top-1/2 -translate-y-1/2
+                        bg-slate-900 text-white text-xs font-semibold
+                        px-2.5 py-1 rounded-lg whitespace-nowrap shadow-lg
+                        z-60 pointer-events-none animate-in fade-in zoom-in-95 duration-150 flex items-center"
+                    >
+                      <span>{item.badge || "Soon"}</span>
+                      <span className="absolute -left-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900" />
+                    </span>
+                  )}
+                </div>
+              );
+            }
+
             return (
               <NavLink
                 key={item.to}

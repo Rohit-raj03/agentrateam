@@ -1,11 +1,15 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { Navigate, Outlet, Link } from "react-router-dom";
 import { ShieldAlert, ArrowLeft } from "lucide-react";
 import { useAuth } from "../../features/auth/hooks/useAuth.js";
+import { authService } from "../../features/auth/services/auth.service.js";
 import { ROUTES } from "../../shared/constants/routes.js";
 
 export const ProtectedRoute = ({ allowedRoles }) => {
   const { isAuthenticated, user, loading } = useAuth();
+  const [verifying, setVerifying] = useState(false);
+  const [verifiedRole, setVerifiedRole] = useState(null);
+  const [verificationFailed, setVerificationFailed] = useState(false);
 
   // Normalize allowedRoles to lowercase trimmed strings
   const normalizedAllowedRoles = useMemo(() => {
@@ -19,10 +23,50 @@ export const ProtectedRoute = ({ allowedRoles }) => {
     return allowedRoles.map((r) => String(r).toLowerCase().trim());
   }, [allowedRoles]);
 
-  const userRole = (user?.role || "").toLowerCase().trim();
   const isRoleRestricted = Boolean(
     normalizedAllowedRoles && normalizedAllowedRoles.length > 0,
   );
+
+  useEffect(() => {
+    let isMounted = true;
+
+    if (!isRoleRestricted || !isAuthenticated) {
+      setVerifying(false);
+      return;
+    }
+
+    setVerifying(true);
+    setVerificationFailed(false);
+
+    authService
+      .getCurrentUser()
+      .then((res) => {
+        if (!isMounted) return;
+        const freshUser = res?.user || res?.data?.user;
+        if (!freshUser || !freshUser.role) {
+          // Fail closed
+          setVerificationFailed(true);
+          setVerifiedRole(null);
+        } else {
+          setVerifiedRole(String(freshUser.role).toLowerCase().trim());
+        }
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        // Fail closed on error
+        setVerificationFailed(true);
+        setVerifiedRole(null);
+      })
+      .finally(() => {
+        if (isMounted) {
+          setVerifying(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [isRoleRestricted, isAuthenticated]);
 
   // If initial auth token hydration is genuinely in-progress without user data, show brief loader
   if (loading && !user) {
@@ -38,8 +82,22 @@ export const ProtectedRoute = ({ allowedRoles }) => {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
 
-  // Role restricted and user does not have permission -> clarify authorization status clearly
-  if (isRoleRestricted && !normalizedAllowedRoles.includes(userRole)) {
+  // If route is role restricted, show loader while verifying against /auth/me
+  if (isRoleRestricted && verifying) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-surface-page">
+        <div className="w-8 h-8 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const effectiveRole = verifiedRole || (user?.role || "").toLowerCase().trim();
+
+  // Role restricted and user does not have permission or verification failed -> fail closed
+  if (
+    isRoleRestricted &&
+    (verificationFailed || !verifiedRole || !normalizedAllowedRoles.includes(verifiedRole))
+  ) {
     return (
       <div className="min-h-screen w-full flex items-center justify-center bg-slate-50 p-4">
         <div className="max-w-md w-full bg-white rounded-3xl border border-slate-100 shadow-sm p-6 text-center space-y-4 animate-in fade-in zoom-in-95 duration-150">
@@ -61,7 +119,7 @@ export const ProtectedRoute = ({ allowedRoles }) => {
               </span>{" "}
               with the role{" "}
               <span className="font-semibold text-slate-800 capitalize">
-                "{userRole || "Team Member"}"
+                "{effectiveRole || "Team Member"}"
               </span>
               . This section is restricted to{" "}
               <span className="font-semibold text-primary capitalize">

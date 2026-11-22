@@ -1,13 +1,12 @@
 import { createSlice } from '@reduxjs/toolkit';
 import { storage } from '../../../shared/utils/localStorage.js';
 
-const initialToken = storage.get('auth_token', null);
 const initialUser = storage.get('auth_user', null);
 
 const initialState = {
-  token: initialToken,
+  token: null,
   user: initialUser,
-  isAuthenticated: Boolean(initialToken && initialUser),
+  isAuthenticated: Boolean(initialUser),
   loading: false,
   error: null,
 };
@@ -29,11 +28,7 @@ const authSlice = createSlice({
         : null;
       state.isAuthenticated = true;
       state.error = null;
-      storage.set('auth_token', state.token);
       storage.set('auth_user', state.user);
-      if (action.payload.refreshToken) {
-        storage.set('auth_refresh_token', action.payload.refreshToken);
-      }
     },
     loginFailure(state, action) {
       state.loading = false;
@@ -48,11 +43,7 @@ const authSlice = createSlice({
         : null;
       state.isAuthenticated = true;
       state.error = null;
-      storage.set('auth_token', state.token);
       storage.set('auth_user', state.user);
-      if (action.payload.refreshToken) {
-        storage.set('auth_refresh_token', action.payload.refreshToken);
-      }
     },
     updateUserProfile(state, action) {
       const updated = { ...state.user, ...action.payload };
@@ -67,25 +58,23 @@ const authSlice = createSlice({
       const accessToken = action.payload?.token || action.payload?.accessToken;
       if (accessToken) {
         state.token = accessToken;
-        storage.set('auth_token', accessToken);
-      }
-      if (action.payload?.refreshToken) {
-        storage.set('auth_refresh_token', action.payload.refreshToken);
       }
       if (action.payload?.user) {
         const rawUser = action.payload.user;
         state.user = { ...rawUser, id: rawUser.id || rawUser._id };
         storage.set('auth_user', state.user);
       }
-      state.isAuthenticated = Boolean(state.token && state.user);
+      state.isAuthenticated = Boolean(state.user);
     },
     logout(state) {
       state.token = null;
       state.user = null;
       state.isAuthenticated = false;
       state.error = null;
-      storage.remove('auth_token');
       storage.remove('auth_user');
+      storage.remove('agentrateam');
+      storage.remove('user_settings_notifications');
+      storage.remove('auth_token');
       storage.remove('auth_refresh_token');
     },
   },

@@ -7,9 +7,11 @@ import {
   registerSuccess,
   updateUserProfile,
   clearError,
+  setCredentials,
   logout as logoutAction,
 } from '../store/authSlice.js';
 import { authService } from '../services/auth.service.js';
+import { apiClient } from '../../../shared/api/apiClient.js';
 import { showToast } from '../../../shared/utils/toast.js';
 import { clearTeamCache } from '../../team/hooks/useTeam.js';
 import { clearNotificationsCache } from '../../notifications/hooks/useNotifications.js';
@@ -66,8 +68,22 @@ export function useAuth() {
   }, [dispatch]);
 
   const checkAuth = useCallback(async () => {
-    if (!token) return null;
     try {
+      if (!token) {
+        const response = await apiClient.post('/auth/refresh-token', {});
+        const data = response?.data || response;
+        const newAccessToken = data?.accessToken || data?.token;
+        if (newAccessToken) {
+          dispatch(
+            setCredentials({
+              accessToken: newAccessToken,
+              user: data?.user,
+            })
+          );
+          return data?.user;
+        }
+        return null;
+      }
       const response = await authService.getCurrentUser();
       const freshUser = response?.user;
       if (freshUser) {
@@ -76,7 +92,7 @@ export function useAuth() {
       }
       return null;
     } catch (err) {
-      if (err?.status === 401) {
+      if (err?.status === 401 || err?.response?.status === 401) {
         dispatch(logoutAction());
       }
       return null;

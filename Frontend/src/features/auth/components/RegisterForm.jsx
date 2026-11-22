@@ -13,7 +13,6 @@ export const RegisterForm = () => {
     name: "",
     email: "",
     password: "",
-    role: "user",
   });
   const [errors, setErrors] = useState({});
   const { register, loginWithGoogle, loading } = useAuth();

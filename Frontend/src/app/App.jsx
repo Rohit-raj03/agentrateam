@@ -4,13 +4,11 @@ import { useAuth } from '../features/auth/hooks/useAuth.js';
 import { Toaster } from '../shared/components/ui/Toaster.jsx';
 
 export const App = () => {
-  const { token, checkAuth } = useAuth();
+  const { checkAuth } = useAuth();
 
   useEffect(() => {
-    if (token) {
-      checkAuth();
-    }
-  }, [checkAuth, token]);
+    checkAuth();
+  }, [checkAuth]);
 
   return (
     <>

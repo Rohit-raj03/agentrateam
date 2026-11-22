@@ -7,6 +7,7 @@ import tailwindcss from "@tailwindcss/vite";
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: {
+    preserveSymlinks: true,
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
