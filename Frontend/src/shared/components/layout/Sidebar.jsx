@@ -8,8 +8,8 @@ import {
   Settings,
   Send,
   FolderPlus,
-  ChevronLeft,
-  ChevronRight,
+  PanelLeftClose,
+  PanelLeftOpen,
   X,
 } from "lucide-react";
 
@@ -176,9 +176,9 @@ export const Sidebar = ({ isOpen, onClose }) => {
           aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
           {isCollapsed ? (
-            <ChevronRight size={13} strokeWidth={2.4} />
+            <PanelLeftOpen size={14} strokeWidth={2.2} />
           ) : (
-            <ChevronLeft size={13} strokeWidth={2.4} />
+            <PanelLeftClose size={14} strokeWidth={2.2} />
           )}
         </button>
 
