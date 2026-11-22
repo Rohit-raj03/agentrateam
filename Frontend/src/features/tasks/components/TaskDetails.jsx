@@ -106,15 +106,72 @@ export const TaskDetails = ({
   const isCreator = Boolean(
     currentUserId && creatorId && currentUserId === creatorId
   );
-  const isProjectManager = Boolean(
+
+  const isProjectOwnerOrAdmin = Boolean(
     project &&
       currentUserId &&
-      ((project.manager?._id || project.manager)?.toString() === currentUserId ||
-        (project.owner?._id || project.owner)?.toString() === currentUserId ||
+      ((project.owner?._id || project.owner)?.toString() === currentUserId ||
+        (project.manager?._id || project.manager)?.toString() === currentUserId ||
+        project.members?.some(
+          (m) =>
+            (m.id?.toString() === currentUserId ||
+              m._id?.toString() === currentUserId ||
+              (m.user?._id || m.user?.id || m.user)?.toString() === currentUserId) &&
+            ((m.role || "").toLowerCase() === "owner" || (m.role || "").toLowerCase() === "admin")
+        ) ||
         project.canManageProject?.(currentUser?._id, currentUser?.role))
   );
 
-  const canManageTask = isAdmin || isCreator || isProjectManager;
+  const isProjectViewer = Boolean(
+    !isAdmin &&
+      project &&
+      currentUserId &&
+      ((project.owner?._id || project.owner)?.toString() !== currentUserId &&
+        (project.manager?._id || project.manager)?.toString() !== currentUserId) &&
+      project.members?.some(
+        (m) =>
+          (m.id?.toString() === currentUserId ||
+            m._id?.toString() === currentUserId ||
+            (m.user?._id || m.user?.id || m.user)?.toString() === currentUserId) &&
+          (m.role || "").toLowerCase() === "viewer"
+      )
+  );
+
+  const isAssignee = Boolean(
+    currentUserId &&
+      Array.isArray(task?.assignees) &&
+      task.assignees.some((a) => {
+        const aUid = (a?._id || a?.id || a)?.toString();
+        return aUid === currentUserId;
+      })
+  );
+
+  const isAuthorizedProjectMember = Boolean(
+    !project ||
+      isAdmin ||
+      (currentUserId &&
+        ((project.owner?._id || project.owner)?.toString() === currentUserId ||
+          (project.manager?._id || project.manager)?.toString() === currentUserId ||
+          project.members?.some(
+            (m) =>
+              (m.id?.toString() === currentUserId ||
+                m._id?.toString() === currentUserId ||
+                (m.user?._id || m.user?.id || m.user)?.toString() === currentUserId)
+          )))
+  );
+
+  // Can edit: Admin, Project Owner/Admin, Task Creator, or Task Assignee (must be authorized project member and not project viewer)
+  const canEdit =
+    isAuthorizedProjectMember &&
+    !isProjectViewer &&
+    (isAdmin || isProjectOwnerOrAdmin || isCreator || isAssignee);
+
+  // Can delete: Admin, Project Owner/Admin, or Task Creator (must be authorized project member and not project viewer). Assignees cannot delete someone else's task.
+  const canDelete =
+    isAuthorizedProjectMember &&
+    !isProjectViewer &&
+    (isAdmin || isProjectOwnerOrAdmin || isCreator);
+  const canManageTask = canDelete;
 
   // Task deletion handler
   const handleDeleteConfirm = async (reason) => {
@@ -191,6 +248,8 @@ export const TaskDetails = ({
         task={task}
         project={project}
         canManageTask={canManageTask}
+        canEdit={canEdit}
+        canDelete={canDelete}
         onOpenEditModal={() => setIsEditModalOpen(true)}
         onOpenDeleteModal={() => {
           setDeleteError("");
@@ -242,14 +301,14 @@ export const TaskDetails = ({
         title="Update Task"
         subtitle="Update overall task details, workflow status, assignees, and checklist."
         onSubmit={async (data) => {
-          const updated = {
-            ...task,
+          const taskId = task.id || task._id || currentId;
+          const updatePayload = {
             ...data,
-            id: task.id || task._id || currentId,
-            _id: task._id || task.id || currentId,
+            id: taskId,
+            _id: taskId,
           };
-          const res = await updateTask(updated);
-          const finalUpdated = res?.task || res?.data || res || updated;
+          const res = await updateTask(updatePayload);
+          const finalUpdated = res?.task || res?.data || res || { ...task, ...data };
           setFetchedTask(finalUpdated);
           onUpdate?.(finalUpdated);
           setIsEditModalOpen(false);

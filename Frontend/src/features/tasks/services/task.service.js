@@ -13,9 +13,52 @@ export const taskService = {
     return apiClient.post("/tasks", payload);
   },
   updateTask: async (id, data) => {
-    const payload = data?.subtasks
-      ? { ...data, subtasks: sanitizeSubtasks(data.subtasks) }
-      : data;
+    // Whitelist valid update fields to prevent sending heavy populated documents
+    const allowedFields = [
+      "title",
+      "description",
+      "status",
+      "priority",
+      "startDate",
+      "dueDate",
+      "estimatedTime",
+      "assignees",
+      "tags",
+      "subtasks",
+      "attachments",
+      "comment",
+      "projectId",
+      "projectName",
+      "isIndividual",
+      "assignedTo",
+    ];
+
+    let payload = data;
+    if (data && typeof data === "object") {
+      const cleanPayload = {};
+      for (const key of allowedFields) {
+        if (data[key] !== undefined) {
+          cleanPayload[key] = data[key];
+        }
+      }
+
+      // If projectId was not explicitly set but project was passed
+      if (cleanPayload.projectId === undefined && data.project !== undefined) {
+        cleanPayload.projectId =
+          typeof data.project === "object"
+            ? data.project?._id || data.project?.id || null
+            : data.project;
+      }
+
+      if (cleanPayload.subtasks) {
+        cleanPayload.subtasks = sanitizeSubtasks(cleanPayload.subtasks);
+      }
+
+      if (Object.keys(cleanPayload).length > 0) {
+        payload = cleanPayload;
+      }
+    }
+
     return apiClient.patch(`/tasks/${id}`, payload);
   },
   deleteTask: async (id, reason) =>
