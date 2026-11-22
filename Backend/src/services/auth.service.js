@@ -1,9 +1,18 @@
+import crypto from "node:crypto";
 import UserModel from "../models/user.model.js";
 import {
   generateAccessAndRefreshTokens,
   verifyRefreshToken,
 } from "../utils/generateToken.js";
 import { verifyGoogleToken } from "./google-auth.service.js";
+
+/**
+ * SHA-256 hash helper for secure refresh token storage
+ */
+export const hashRefreshToken = (token) => {
+  if (!token || typeof token !== "string") return "";
+  return crypto.createHash("sha256").update(token).digest("hex");
+};
 
 /**
  * Register a new user with email and password
@@ -41,7 +50,7 @@ export const register = async ({ name, email, password, role, jobTitle }) => {
     user.role
   );
 
-  user.refreshToken = refreshToken;
+  user.refreshToken = hashRefreshToken(refreshToken);
   await user.save({ validateBeforeSave: false });
 
   return { user, accessToken, refreshToken };
@@ -90,7 +99,7 @@ export const login = async ({ email, password }) => {
     user.role
   );
 
-  user.refreshToken = refreshToken;
+  user.refreshToken = hashRefreshToken(refreshToken);
   user.lastActive = new Date();
   await user.save({ validateBeforeSave: false });
 
@@ -118,7 +127,7 @@ export const loginWithGoogle = async (credential) => {
       user.role
     );
 
-    user.refreshToken = refreshToken;
+    user.refreshToken = hashRefreshToken(refreshToken);
     user.lastActive = new Date();
     await user.save({ validateBeforeSave: false });
 
@@ -147,7 +156,7 @@ export const loginWithGoogle = async (credential) => {
       user.role
     );
 
-    user.refreshToken = refreshToken;
+    user.refreshToken = hashRefreshToken(refreshToken);
     user.lastActive = new Date();
     await user.save({ validateBeforeSave: false });
 
@@ -170,7 +179,7 @@ export const loginWithGoogle = async (credential) => {
     user.role
   );
 
-  user.refreshToken = refreshToken;
+  user.refreshToken = hashRefreshToken(refreshToken);
   await user.save({ validateBeforeSave: false });
 
   return { user, accessToken, refreshToken, isNewUser: true };
@@ -204,8 +213,25 @@ export const refreshSession = async (incomingRefreshToken) => {
     throw error;
   }
 
-  // Check token reuse
-  if (user.refreshToken && user.refreshToken !== incomingRefreshToken) {
+  // Reject empty/missing user.refreshToken
+  if (!user.refreshToken) {
+    const error = new Error("Invalid or revoked refresh token. Please sign in again.");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const incomingHash = hashRefreshToken(incomingRefreshToken);
+  const storedHash = user.refreshToken;
+
+  const incomingBuffer = Buffer.from(incomingHash, "hex");
+  const storedBuffer = Buffer.from(storedHash, "hex");
+
+  const isMatch =
+    incomingBuffer.length === storedBuffer.length &&
+    crypto.timingSafeEqual(incomingBuffer, storedBuffer);
+
+  // Check token reuse / mismatch
+  if (!isMatch) {
     user.refreshToken = "";
     await user.save({ validateBeforeSave: false });
     const error = new Error("Invalid or revoked refresh token. Please sign in again.");
@@ -217,7 +243,7 @@ export const refreshSession = async (incomingRefreshToken) => {
   const { accessToken, refreshToken: newRefreshToken } =
     generateAccessAndRefreshTokens(user, user.role);
 
-  user.refreshToken = newRefreshToken;
+  user.refreshToken = hashRefreshToken(newRefreshToken);
   user.lastActive = new Date();
   await user.save({ validateBeforeSave: false });
 
@@ -240,5 +266,6 @@ export default {
   loginWithGoogle,
   refreshSession,
   logout,
+  hashRefreshToken,
 };
 

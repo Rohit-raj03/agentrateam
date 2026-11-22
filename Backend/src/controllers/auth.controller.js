@@ -2,8 +2,11 @@ import crypto from "node:crypto";
 import jwt from "jsonwebtoken";
 import UserModel from "../models/user.model.js";
 import config from "../config/config.js";
-import { getRefreshTokenCookieOptions } from "../utils/generateToken.js";
-import authService from "../services/auth.service.js";
+import {
+  getRefreshTokenCookieOptions,
+  getRefreshTokenClearCookieOptions,
+} from "../utils/generateToken.js";
+import authService, { hashRefreshToken } from "../services/auth.service.js";
 
 /**
  * Format standard authenticated user payload matching frontend expectations
@@ -179,13 +182,13 @@ export const logoutUser = async (req, res) => {
       await authService.logout(userId);
     } else if (refreshToken) {
       await UserModel.findOneAndUpdate(
-        { refreshToken },
+        { refreshToken: hashRefreshToken(refreshToken) },
         { refreshToken: "" }
       );
     }
 
     // 4. Clear client-side cookie
-    res.clearCookie("refreshToken", getRefreshTokenCookieOptions());
+    res.clearCookie("refreshToken", getRefreshTokenClearCookieOptions());
     return res.status(200).json({
       success: true,
       message: "Logged out successfully",
@@ -268,17 +271,10 @@ export const forgotPassword = async (req, res) => {
     user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
     await user.save({ validateBeforeSave: false });
 
-    const clientUrl = config.CLIENT_URL || "http://localhost:5173";
-    const resetUrl = `${clientUrl.replace(/\/$/, "")}/reset-password?token=${resetToken}`;
-
-    // SEC-11: Never leak reset token unless explicitly in local development/test mode
-    const isDevelopmentOrTest =
-      config.NODE_ENV === "development" || config.NODE_ENV === "test";
-
+    // Password reset token disclosure fix: Never return resetToken or resetUrl in HTTP response in any environment
     return res.status(200).json({
       success: true,
       message: RESET_SUCCESS_MESSAGE,
-      ...(isDevelopmentOrTest && { resetUrl, resetToken }),
     });
   } catch (error) {
     return res.status(500).json({
@@ -326,6 +322,8 @@ export const resetPassword = async (req, res) => {
     }
 
     user.password = newPassword;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    user.refreshToken = "";
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();

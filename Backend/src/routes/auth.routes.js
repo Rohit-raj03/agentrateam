@@ -18,8 +18,8 @@ const router = express.Router();
 router.post("/register", authRateLimiter, registerUser);
 router.post("/login", authRateLimiter, loginUser);
 router.post("/google", authRateLimiter, googleAuthUser);
-router.post("/refresh-token", refreshAccessToken);
-router.post("/refresh", refreshAccessToken); // Alias
+router.post("/refresh-token", authRateLimiter, refreshAccessToken);
+router.post("/refresh", authRateLimiter, refreshAccessToken); // Alias
 router.post("/logout", logoutUser);
 router.post("/forgot-password", authRateLimiter, forgotPassword);
 router.post("/reset-password", authRateLimiter, resetPassword);

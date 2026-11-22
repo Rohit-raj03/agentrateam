@@ -20,15 +20,22 @@ export const generateAccessToken = (user, role = "user") => {
     throw new Error("JWT ACCESS_TOKEN_SECRET is not configured");
   }
 
+  const tokenVersion =
+    typeof user === "object" && user?.tokenVersion !== undefined
+      ? user.tokenVersion
+      : 0;
+
   const payload = {
     userId,
     id: userId,
     role: userRole,
+    tokenVersion,
     ...(userEmail && { email: userEmail }),
   };
 
   return jwt.sign(payload, secret, {
-    expiresIn: config?.ACCESS_TOKEN_EXPIRES_IN || process.env.ACCESS_TOKEN_EXPIRES_IN || "7d",
+    algorithm: "HS256",
+    expiresIn: config?.ACCESS_TOKEN_EXPIRES_IN || process.env.ACCESS_TOKEN_EXPIRES_IN || "15m",
   });
 };
 
@@ -58,6 +65,7 @@ export const generateRefreshToken = (user, role = "user") => {
     },
     secret,
     {
+      algorithm: "HS256",
       expiresIn: config?.REFRESH_TOKEN_EXPIRES_IN || process.env.REFRESH_TOKEN_EXPIRES_IN || "7d",
     }
   );
@@ -102,6 +110,21 @@ export const getRefreshTokenCookieOptions = () => {
 };
 
 /**
+ * Cookie options for clearing refresh tokens (omits maxAge to satisfy Express v5 standards)
+ */
+export const getRefreshTokenClearCookieOptions = () => {
+  const isProduction =
+    config?.NODE_ENV === "production" || process.env.NODE_ENV === "production";
+
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    path: "/",
+  };
+};
+
+/**
  * Verify Access Token
  */
 export const verifyAccessToken = (token) => {
@@ -109,7 +132,7 @@ export const verifyAccessToken = (token) => {
   if (!secret) {
     throw new Error("JWT ACCESS_TOKEN_SECRET is not configured");
   }
-  return jwt.verify(token, secret);
+  return jwt.verify(token, secret, { algorithms: ["HS256"] });
 };
 
 /**
@@ -120,7 +143,7 @@ export const verifyRefreshToken = (token) => {
   if (!secret) {
     throw new Error("JWT REFRESH_TOKEN_SECRET is not configured");
   }
-  return jwt.verify(token, secret);
+  return jwt.verify(token, secret, { algorithms: ["HS256"] });
 };
 
 export default {

@@ -35,7 +35,7 @@ export const protect = async (req, res, next) => {
       throw new Error("JWT ACCESS_TOKEN_SECRET is not configured");
     }
 
-    const decoded = jwt.verify(token, secret);
+    const decoded = jwt.verify(token, secret, { algorithms: ["HS256"] });
     const userId = decoded.userId || decoded.id;
 
     if (!userId) {
@@ -59,6 +59,17 @@ export const protect = async (req, res, next) => {
       return res.status(403).json({
         success: false,
         message: "Your account is deactivated. Please contact an administrator.",
+      });
+    }
+
+    // Token version revocation check (invalidates previous sessions on password change/reset)
+    const tokenVersion = decoded.tokenVersion !== undefined ? decoded.tokenVersion : 0;
+    const currentVersion = user.tokenVersion || 0;
+    if (tokenVersion !== currentVersion) {
+      return res.status(401).json({
+        success: false,
+        message: "Session invalidated due to password change. Please log in again.",
+        code: "TOKEN_REVOKED",
       });
     }
 

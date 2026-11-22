@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import UserModel from "../models/user.model.js";
 import { escapeRegex } from "../utils/regex.util.js";
 import {
@@ -59,6 +60,8 @@ export const updateUserProfile = async (req, res) => {
       phone,
       bio,
       jobTitle,
+      department,
+      responsibility,
       location,
       timezone,
       avatar,
@@ -85,6 +88,8 @@ export const updateUserProfile = async (req, res) => {
     if (phone !== undefined) user.phone = phone.trim();
     if (bio !== undefined) user.bio = bio.trim();
     if (jobTitle !== undefined) user.jobTitle = jobTitle.trim();
+    if (department !== undefined) user.department = department.trim();
+    if (responsibility !== undefined) user.responsibility = responsibility.trim();
     if (location !== undefined) user.location = location.trim();
     if (timezone !== undefined) user.timezone = timezone.trim();
     if (twoFactorEnabled !== undefined) {
@@ -128,6 +133,8 @@ export const updateUserProfile = async (req, res) => {
         username: updatedUser.username,
         email: updatedUser.email,
         role: updatedUser.role,
+        department: updatedUser.department,
+        responsibility: updatedUser.responsibility,
         jobTitle: updatedUser.jobTitle,
         phone: updatedUser.phone,
         bio: updatedUser.bio,
@@ -181,7 +188,7 @@ export const getAllUsers = async (req, res) => {
     const [total, users] = await Promise.all([
       UserModel.countDocuments(query),
       UserModel.find(query)
-        .select("-password")
+        .select("name username email avatar jobTitle department")
         .sort({ createdAt: -1 })
         .skip((pageNum - 1) * limitNum)
         .limit(limitNum),
@@ -215,7 +222,18 @@ export const getAllUsers = async (req, res) => {
  */
 export const getUserById = async (req, res) => {
   try {
-    const user = await UserModel.findById(req.params.id).select("-password");
+    const { id } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid user ID format",
+      });
+    }
+
+    const user = await UserModel.findById(id).select(
+      "name username email avatar jobTitle department"
+    );
 
     if (!user) {
       return res.status(404).json({
@@ -277,6 +295,8 @@ export const changePassword = async (req, res) => {
     }
 
     user.password = newPassword;
+    user.tokenVersion = (user.tokenVersion || 0) + 1;
+    user.refreshToken = "";
     await user.save();
 
     res.status(200).json({

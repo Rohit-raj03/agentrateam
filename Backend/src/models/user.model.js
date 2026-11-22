@@ -60,6 +60,12 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    responsibility: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
     skills: [
       {
         type: String,
@@ -129,6 +135,11 @@ const userSchema = new mongoose.Schema(
     refreshToken: {
       type: String,
       default: "",
+    },
+
+    tokenVersion: {
+      type: Number,
+      default: 0,
     },
   },
   {

@@ -7,13 +7,17 @@ const __dirname = path.dirname(__filename);
 
 dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 
+if (!process.env.NODE_ENV) {
+  console.warn("WARNING: NODE_ENV is unset, defaulting to 'development'.");
+}
+
 export const config = {
   PORT: process.env.PORT || 5050,
   NODE_ENV: process.env.NODE_ENV || "development",
   MONGO_URI: process.env.MONGO_URI,
   ACCESS_TOKEN_SECRET: process.env.ACCESS_TOKEN_SECRET,
   REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET,
-  ACCESS_TOKEN_EXPIRES_IN: process.env.ACCESS_TOKEN_EXPIRES_IN || "7d",
+  ACCESS_TOKEN_EXPIRES_IN: process.env.ACCESS_TOKEN_EXPIRES_IN || "15m",
   REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN || "7d",
   CLIENT_URL: process.env.CLIENT_URL || "http://localhost:5173",
   IMAGEKIT_PRIVATE_KEY: process.env.IMAGEKIT_PRIVATE_KEY,
@@ -28,11 +32,16 @@ export const config = {
     "http://localhost:5173/auth/google/callback",
 };
 
-// Fail fast in production if security-critical secrets are absent
+// Fail fast in production if security-critical secrets are absent or identical
 if (config.NODE_ENV === "production") {
   if (!config.ACCESS_TOKEN_SECRET || !config.REFRESH_TOKEN_SECRET) {
     throw new Error(
       "FATAL: ACCESS_TOKEN_SECRET and REFRESH_TOKEN_SECRET must be defined in production environment."
+    );
+  }
+  if (config.ACCESS_TOKEN_SECRET === config.REFRESH_TOKEN_SECRET) {
+    throw new Error(
+      "FATAL: ACCESS_TOKEN_SECRET and REFRESH_TOKEN_SECRET must not be identical in production environment."
     );
   }
 }
