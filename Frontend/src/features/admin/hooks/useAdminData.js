@@ -42,7 +42,9 @@ const normalizeUser = (u) => {
     role: displayRole,
     rawRole: u.role,
     jobTitle: u.jobTitle || (displayRole === 'Admin' ? 'Administrator' : 'Contributor'),
-    team: u.team || 'Core Team',
+    department: u.department || 'engineering',
+    responsibility: u.responsibility || '',
+    team: u.responsibility || u.department || u.team || 'Core Team',
     status: isActive ? 'active' : 'inactive',
     isActive,
     avatar: u.avatar || '',
@@ -171,6 +173,8 @@ export function useAdminData(options = {}) {
             ? 'manager'
             : 'user',
         jobTitle: userData.jobTitle,
+        department: userData.department || '',
+        responsibility: userData.responsibility || '',
         phone: userData.phone || '',
       };
 

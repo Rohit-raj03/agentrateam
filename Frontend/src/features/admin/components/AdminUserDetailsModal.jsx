@@ -48,8 +48,12 @@ export const AdminUserDetailsModal = ({ user, onClose }) => {
             <span className="font-semibold text-slate-800">{user.email}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-slate-400">Team:</span>
-            <span className="font-semibold text-slate-800">{user.team}</span>
+            <span className="text-slate-400">Department:</span>
+            <span className="font-semibold text-slate-800 capitalize">{user.department || 'General'}</span>
+          </div>
+          <div className="flex justify-between">
+            <span className="text-slate-400">Responsibility:</span>
+            <span className="font-semibold text-slate-800">{user.responsibility || user.team || 'Member'}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-slate-400">Job Title:</span>

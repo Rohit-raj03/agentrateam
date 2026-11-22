@@ -5,6 +5,7 @@ import { AdminUserTable } from './AdminUserTable.jsx';
 import { AdminUserFormModal } from './AdminUserFormModal.jsx';
 import { AdminUserDetailsModal } from './AdminUserDetailsModal.jsx';
 import { AdminConfirmationModal } from './AdminConfirmationModal.jsx';
+import { getResponsibilities } from '../constants/departments.js';
 
 const TEAMS_LIST = [
   'All Teams',
@@ -19,11 +20,12 @@ const ROLES_LIST = ['All Roles', 'Admin', 'Project Manager', 'Team Member'];
 
 const DEFAULT_FORM_DATA = {
   name: '',
-  email: '',
   username: '',
-  role: 'Team Member',
-  jobTitle: 'Software Engineer',
-  team: 'Frontend Engineering',
+  email: '',
+  role: 'Member',
+  department: 'engineering',
+  responsibility: 'frontend',
+  jobTitle: 'Frontend Developer',
 };
 
 /**
@@ -107,13 +109,17 @@ export const AdminUserManagement = ({
 
   const openEditModal = (user) => {
     setEditingUser(user);
+    const dept = user.department || 'engineering';
+    const resps = getResponsibilities(dept);
+    const resp = user.responsibility || (resps[0] ? resps[0].value : '');
     setFormData({
-      name: user.name,
-      email: user.email,
-      username: user.username,
-      role: user.role,
+      name: user.name || '',
+      username: user.username || '',
+      email: user.email || '',
+      role: user.role || 'Member',
+      department: dept,
+      responsibility: resp,
       jobTitle: user.jobTitle || '',
-      team: user.team || 'Frontend Engineering',
     });
     setFormError('');
   };

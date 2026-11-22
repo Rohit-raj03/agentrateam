@@ -20,7 +20,7 @@ const INITIAL_ROLE_PERMISSIONS = {
   },
   'Team Member': {
     manage_users: false,
-    manage_projects: false,
+    manage_projects: true,
     manage_tasks: true,
     manage_teams: false,
     view_analytics: false,

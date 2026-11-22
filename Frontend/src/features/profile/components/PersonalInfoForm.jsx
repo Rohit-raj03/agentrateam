@@ -8,13 +8,18 @@ import {
   Briefcase,
   MapPin,
   Globe,
-  AlignLeft,
+  Building2,
+  Award,
 } from "lucide-react";
+import {
+  DEPARTMENT_OPTIONS,
+  getResponsibilities,
+} from "../../admin/constants/departments.js";
 
 /**
  * Feature Component: PersonalInfoForm
  * Layer: features/profile/components/
- * Responsibility: Renders editable input fields for personal information (Name, Username, Email, Phone, Job Title, Bio, Location, Time Zone).
+ * Responsibility: Renders editable input fields for personal information (Name, Username, Email, Phone, Department, Team & Responsibility, Job Title, Bio, Location, Time Zone).
  */
 export const PersonalInfoForm = ({ formData, errors, onChange }) => {
   const timezones = [
@@ -29,6 +34,41 @@ export const PersonalInfoForm = ({ formData, errors, onChange }) => {
     "Australia/Sydney (GMT+10:00)",
   ];
 
+  const currentResponsibilities = getResponsibilities(formData.department);
+
+  const handleDepartmentChange = (e) => {
+    const newDept = e.target.value;
+    const resps = getResponsibilities(newDept);
+    const firstResp = resps[0];
+
+    onChange("department", newDept);
+    onChange("responsibility", firstResp ? firstResp.value : "");
+
+    // Optionally suggest jobTitle if empty or matched an existing responsibility label
+    const allLabels = Object.values(getResponsibilities(formData.department)).map(
+      (r) => r.label
+    );
+    if (!formData.jobTitle || allLabels.includes(formData.jobTitle)) {
+      if (firstResp) {
+        onChange("jobTitle", firstResp.label);
+      }
+    }
+  };
+
+  const handleResponsibilityChange = (e) => {
+    const newResp = e.target.value;
+    onChange("responsibility", newResp);
+
+    const found = currentResponsibilities.find((r) => r.value === newResp);
+    if (
+      found &&
+      (!formData.jobTitle ||
+        currentResponsibilities.some((r) => r.label === formData.jobTitle))
+    ) {
+      onChange("jobTitle", found.label);
+    }
+  };
+
   return (
     <Card className="p-6 md:p-8 space-y-6">
       {/* Section Header */}
@@ -37,7 +77,7 @@ export const PersonalInfoForm = ({ formData, errors, onChange }) => {
           Personal Information
         </h3>
         <p className="text-xs text-slate-400 mt-0.5">
-          Update your personal details, contact info, and workspace presence.
+          Update your personal details, department, responsibility, contact info, and workspace presence.
         </p>
       </div>
 
@@ -72,9 +112,12 @@ export const PersonalInfoForm = ({ formData, errors, onChange }) => {
 
         {/* Username */}
         <div className="space-y-1.5">
-          <label className="block text-xs font-bold text-slate-700">
-            Username <span className="text-rose-500">*</span>
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold text-slate-700">
+              Username
+            </label>
+            <span className="text-[10px] text-slate-400 font-medium">Optional</span>
+          </div>
           <div className="relative">
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
               <AtSign size={16} />
@@ -83,7 +126,7 @@ export const PersonalInfoForm = ({ formData, errors, onChange }) => {
               type="text"
               value={formData.username}
               onChange={(e) => onChange("username", e.target.value)}
-              placeholder="username"
+              placeholder="e.g. angelina"
               className={`w-full pl-10 pr-4 py-2.5 bg-[#F8FAFC] text-xs font-semibold text-slate-900 rounded-2xl border ${
                 errors.username
                   ? "border-rose-400 focus:border-rose-500"
@@ -145,11 +188,69 @@ export const PersonalInfoForm = ({ formData, errors, onChange }) => {
           </div>
         </div>
 
-        {/* Job Title / Role */}
+        {/* Department */}
         <div className="space-y-1.5">
           <label className="block text-xs font-bold text-slate-700">
-            Job Title / Role
+            Department
           </label>
+          <div className="relative">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+              <Building2 size={16} />
+            </div>
+            <select
+              value={formData.department || ""}
+              onChange={handleDepartmentChange}
+              className="w-full pl-10 pr-8 py-2.5 bg-[#F8FAFC] text-xs font-semibold text-slate-900 rounded-2xl border border-slate-200/80 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-50 transition-all cursor-pointer"
+            >
+              <option value="" disabled>
+                -- Select Department --
+              </option>
+              {DEPARTMENT_OPTIONS.map((dept) => (
+                <option key={dept.value} value={dept.value}>
+                  {dept.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Team & Responsibility (Dependent Select) */}
+        <div className="space-y-1.5">
+          <label className="block text-xs font-bold text-slate-700">
+            Team & Responsibility
+          </label>
+          <div className="relative">
+            <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+              <Award size={16} />
+            </div>
+            <select
+              value={formData.responsibility || ""}
+              onChange={handleResponsibilityChange}
+              disabled={!formData.department}
+              className="w-full pl-10 pr-8 py-2.5 bg-[#F8FAFC] text-xs font-semibold text-slate-900 rounded-2xl border border-slate-200/80 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-50 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
+            >
+              <option value="" disabled>
+                {formData.department
+                  ? "-- Select Responsibility --"
+                  : "Select Department first"}
+              </option>
+              {currentResponsibilities.map((resp) => (
+                <option key={resp.value} value={resp.value}>
+                  {resp.label}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Job Title / Discipline */}
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between">
+            <label className="block text-xs font-bold text-slate-700">
+              Job Title / Discipline
+            </label>
+            <span className="text-[10px] text-slate-400 font-medium">Optional</span>
+          </div>
           <div className="relative">
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
               <Briefcase size={16} />
@@ -158,7 +259,7 @@ export const PersonalInfoForm = ({ formData, errors, onChange }) => {
               type="text"
               value={formData.jobTitle}
               onChange={(e) => onChange("jobTitle", e.target.value)}
-              placeholder="e.g. Lead Product Designer"
+              placeholder="e.g. Software Engineer, UI Designer, QA Engineer"
               className="w-full pl-10 pr-4 py-2.5 bg-[#F8FAFC] text-xs font-semibold text-slate-900 rounded-2xl border border-slate-200/80 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
             />
           </div>
@@ -183,7 +284,7 @@ export const PersonalInfoForm = ({ formData, errors, onChange }) => {
           </div>
         </div>
 
-        {/* Time Zone (Spans full width or half) */}
+        {/* Time Zone (Spans full width) */}
         <div className="md:col-span-2 space-y-1.5">
           <label className="block text-xs font-bold text-slate-700">
             Time Zone
