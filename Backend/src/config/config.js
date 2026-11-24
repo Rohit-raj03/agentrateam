@@ -1,15 +1,5 @@
 import dotenv from "dotenv";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-dotenv.config({ path: path.resolve(__dirname, "../../.env") });
-
-if (!process.env.NODE_ENV) {
-  console.warn("WARNING: NODE_ENV is unset, defaulting to 'development'.");
-}
+dotenv.config();
 
 export const config = {
   PORT: process.env.PORT || 5050,
@@ -19,7 +9,9 @@ export const config = {
   REFRESH_TOKEN_SECRET: process.env.REFRESH_TOKEN_SECRET,
   ACCESS_TOKEN_EXPIRES_IN: process.env.ACCESS_TOKEN_EXPIRES_IN || "15m",
   REFRESH_TOKEN_EXPIRES_IN: process.env.REFRESH_TOKEN_EXPIRES_IN || "7d",
-  CLIENT_URL: process.env.CLIENT_URL || "http://localhost:5173",
+  CLIENT_URL: process.env.CLIENT_URL
+    ? process.env.CLIENT_URL.trim().replace(/\/+$/, "")
+    : "http://localhost:5173",
   IMAGEKIT_PRIVATE_KEY: process.env.IMAGEKIT_PRIVATE_KEY,
   IMAGEKIT_PUBLIC_KEY: process.env.IMAGEKIT_PUBLIC_KEY,
   IMAGEKIT_URL_ENDPOINT: process.env.IMAGEKIT_URL_ENDPOINT,
@@ -29,21 +21,13 @@ export const config = {
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
   GOOGLE_CALLBACK_URL:
     process.env.GOOGLE_CALLBACK_URL ||
-    "http://localhost:5173/auth/google/callback",
+    `${(process.env.CLIENT_URL || "http://localhost:5173").trim().replace(/\/+$/, "")}/auth/google/callback`,
+  SMTP_HOST: process.env.SMTP_HOST,
+  SMTP_PORT: process.env.SMTP_PORT,
+  SMTP_SECURE: process.env.SMTP_SECURE,
+  SMTP_EMAIL: process.env.SMTP_EMAIL,
+  SMTP_APP_PASSWORD: process.env.SMTP_APP_PASSWORD,
+  INVITATION_EXPIRY_HOURS: Number(process.env.INVITATION_EXPIRY_HOURS),
 };
-
-// Fail fast in production if security-critical secrets are absent or identical
-if (config.NODE_ENV === "production") {
-  if (!config.ACCESS_TOKEN_SECRET || !config.REFRESH_TOKEN_SECRET) {
-    throw new Error(
-      "FATAL: ACCESS_TOKEN_SECRET and REFRESH_TOKEN_SECRET must be defined in production environment."
-    );
-  }
-  if (config.ACCESS_TOKEN_SECRET === config.REFRESH_TOKEN_SECRET) {
-    throw new Error(
-      "FATAL: ACCESS_TOKEN_SECRET and REFRESH_TOKEN_SECRET must not be identical in production environment."
-    );
-  }
-}
 
 export default config;
