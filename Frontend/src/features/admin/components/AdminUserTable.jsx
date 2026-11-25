@@ -111,17 +111,29 @@ export const AdminUserTable = ({
                     <td className="py-3.5 px-4">
                       <span
                         className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          isActive
+                          user.status === 'pending'
+                            ? 'bg-amber-50 text-amber-700 border border-amber-200'
+                            : isActive
                             ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
                             : 'bg-rose-50 text-rose-700 border border-rose-100'
                         }`}
                       >
                         <span
                           className={`w-1.5 h-1.5 rounded-full ${
-                            isActive ? 'bg-emerald-500' : 'bg-rose-500'
+                            user.status === 'pending'
+                              ? 'bg-amber-500'
+                              : isActive
+                              ? 'bg-emerald-500'
+                              : 'bg-rose-500'
                           }`}
                         />
-                        <span>{isActive ? 'Active' : 'Deactivated'}</span>
+                        <span>
+                          {user.status === 'pending'
+                            ? 'Pending'
+                            : isActive
+                            ? 'Active'
+                            : 'Deactivated'}
+                        </span>
                       </span>
                     </td>
 
@@ -153,19 +165,31 @@ export const AdminUserTable = ({
                           <Edit2 size={14} />
                         </button>
 
-                        {/* Deactivate / Activate */}
-                        <button
-                          type="button"
-                          onClick={() => onToggleStatus(user)}
-                          title={isActive ? 'Deactivate User' : 'Activate User'}
-                          className={`p-1.5 rounded-lg transition-colors ${
-                            isActive
-                              ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
-                              : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
-                          }`}
-                        >
-                          {isActive ? <UserX size={14} /> : <UserCheck size={14} />}
-                        </button>
+                        {/* Approve / Activate / Deactivate */}
+                        {user.status === 'pending' ? (
+                          <button
+                            type="button"
+                            onClick={() => onToggleStatus(user)}
+                            title="Approve & Activate Member"
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 transition-colors font-semibold text-[11px] cursor-pointer"
+                          >
+                            <UserCheck size={13} className="text-emerald-600" />
+                            <span>Approve</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => onToggleStatus(user)}
+                            title={isActive ? 'Deactivate User' : 'Activate User'}
+                            className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
+                              isActive
+                                ? 'text-slate-400 hover:text-amber-600 hover:bg-amber-50'
+                                : 'text-slate-400 hover:text-emerald-600 hover:bg-emerald-50'
+                            }`}
+                          >
+                            {isActive ? <UserX size={14} /> : <UserCheck size={14} />}
+                          </button>
+                        )}
 
                         {/* Delete */}
                         <button

@@ -39,6 +39,8 @@ const MessagesPage = safeLazy(() => import("../../pages/messages/MessagesPage.js
 const ProfilePage = safeLazy(() => import("../../pages/profile/ProfilePage.jsx"));
 const SettingsPage = safeLazy(() => import("../../pages/settings/SettingsPage.jsx"));
 const AdminDashboardPage = safeLazy(() => import("../../pages/admin/AdminDashboardPage.jsx"));
+const EmployeeManagementPage = safeLazy(() => import("../../pages/admin/EmployeeManagementPage.jsx"));
+const AcceptInvitationPage = safeLazy(() => import("../../pages/auth/AcceptInvitationPage.jsx"));
 
 const withSuspense = (Component, message) => (
   <Suspense fallback={<PageLoadingFallback message={message} />}>
@@ -68,6 +70,11 @@ const router = createBrowserRouter([
     errorElement: <RouteErrorBoundary />,
   },
   {
+    path: ROUTES.ACCEPT_INVITATION,
+    element: withSuspense(AcceptInvitationPage, "Loading invitation..."),
+    errorElement: <RouteErrorBoundary />,
+  },
+  {
     path: ROUTES.HOME,
     element: <ProtectedRoute />,
     errorElement: <RouteErrorBoundary />,
@@ -78,6 +85,10 @@ const router = createBrowserRouter([
           {
             path: ROUTES.ADMIN,
             element: withSuspense(AdminDashboardPage, "Loading admin dashboard..."),
+          },
+          {
+            path: ROUTES.ADMIN_EMPLOYEES,
+            element: withSuspense(EmployeeManagementPage, "Loading employee management..."),
           },
         ],
       },

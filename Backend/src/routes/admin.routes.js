@@ -4,6 +4,7 @@ import {
   getAllAdminUsers,
   createAdminUser,
   updateUserRole,
+  updateUserDetails,
   toggleUserStatus,
   deleteUser,
 } from "../controllers/admin.controller.js";
@@ -17,6 +18,7 @@ router.use(protect, requireAdmin);
 router.get("/stats", getAdminStats);
 router.get("/users", getAllAdminUsers);
 router.post("/users", createAdminUser);
+router.patch("/users/:id", updateUserDetails);
 router.patch("/users/:id/role", updateUserRole);
 router.patch("/users/:id/status", toggleUserStatus);
 router.delete("/users/:id", deleteUser);

@@ -19,14 +19,17 @@ export const createRateLimiter = ({
   const store = new Map(); // ip -> { count, resetTime }
 
   // Periodic pruning of expired entries to prevent memory growth
-  const cleanupTimer = setInterval(() => {
-    const now = Date.now();
-    for (const [ip, record] of store.entries()) {
-      if (now >= record.resetTime) {
-        store.delete(ip);
+  const cleanupTimer = setInterval(
+    () => {
+      const now = Date.now();
+      for (const [ip, record] of store.entries()) {
+        if (now >= record.resetTime) {
+          store.delete(ip);
+        }
       }
-    }
-  }, Math.min(windowMs, 60000));
+    },
+    Math.min(windowMs, 60000),
+  );
 
   // Allow Node to exit cleanly without waiting on interval
   if (cleanupTimer.unref) {
@@ -73,15 +76,17 @@ export const createRateLimiter = ({
 // Standard limiter for authentication endpoints: 20 requests per 15 minutes
 export const authRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
-  max: 20,
-  message: "Too many authentication attempts from this IP. Please try again after 15 minutes.",
+  max: 30,
+  message:
+    "Too many authentication attempts from this IP. Please try again after 15 minutes.",
 });
 
 // Standard limiter for upload endpoints: 30 requests per 15 minutes
 export const uploadRateLimiter = createRateLimiter({
   windowMs: 15 * 60 * 1000,
   max: 30,
-  message: "Too many upload requests from this IP. Please try again after 15 minutes.",
+  message:
+    "Too many upload requests from this IP. Please try again after 15 minutes.",
 });
 
 export default {

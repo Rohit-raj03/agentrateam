@@ -7,6 +7,7 @@ import {
   getRefreshTokenClearCookieOptions,
 } from "../utils/generateToken.js";
 import authService, { hashRefreshToken } from "../services/auth.service.js";
+import { sendEmail } from "../services/email.service.js";
 
 /**
  * Format standard authenticated user payload matching frontend expectations
@@ -41,9 +42,26 @@ const formatAuthResponse = (user, accessToken, refreshToken) => ({
  */
 export const registerUser = async (req, res) => {
   try {
-    const { user, accessToken, refreshToken } = await authService.register(
+    const { user, accessToken, refreshToken, message } = await authService.register(
       req.body
     );
+
+    if (user.approvalStatus === "pending" || !accessToken) {
+      return res.status(201).json({
+        success: true,
+        message:
+          message ||
+          "Registration successful. Your account is pending administrator approval.",
+        user: {
+          id: user._id,
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          approvalStatus: user.approvalStatus,
+        },
+      });
+    }
 
     res.cookie("refreshToken", refreshToken, getRefreshTokenCookieOptions());
     return res
@@ -76,6 +94,7 @@ export const loginUser = async (req, res) => {
     return res.status(error.statusCode || 500).json({
       success: false,
       message: error.message || "Server error during login",
+      code: error.code,
     });
   }
 };
@@ -108,6 +127,7 @@ export const googleAuthUser = async (req, res) => {
     return res.status(error.statusCode || 500).json({
       success: false,
       message: error.message || "Google authentication failed",
+      code: error.code,
     });
   }
 };
@@ -270,6 +290,24 @@ export const forgotPassword = async (req, res) => {
     user.resetPasswordToken = hashedToken;
     user.resetPasswordExpires = new Date(Date.now() + 15 * 60 * 1000);
     await user.save({ validateBeforeSave: false });
+
+    // Send password reset email with secure token using configured CLIENT_URL
+    const resetUrl = `${config.CLIENT_URL}/reset-password?token=${resetToken}`;
+    await sendEmail({
+      to: user.email,
+      subject: "Password Reset Request - AgentraTeam",
+      html: `
+        <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
+          <h2>Password Reset Request</h2>
+          <p>Hello ${user.name || "User"},</p>
+          <p>You requested a password reset for your AgentraTeam account. Click the button below to reset your password. This link is valid for 15 minutes.</p>
+          <div style="margin: 24px 0;">
+            <a href="${resetUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Reset Password</a>
+          </div>
+          <p style="color: #64748b; font-size: 14px;">If you did not request this, please ignore this email.</p>
+        </div>
+      `,
+    }).catch((err) => console.error("Password reset email delivery error:", err.message));
 
     // Password reset token disclosure fix: Never return resetToken or resetUrl in HTTP response in any environment
     return res.status(200).json({

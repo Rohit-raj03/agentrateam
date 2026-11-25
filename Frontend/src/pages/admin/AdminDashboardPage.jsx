@@ -31,6 +31,11 @@ import { useTasks } from "../../features/tasks/hooks/useTasks.js";
 import { useAuth } from "../../features/auth/hooks/useAuth.js";
 import { Avatar } from "../../shared/components/ui/Avatar.jsx";
 import { ROUTES } from "../../shared/constants/routes.js";
+import { useInvitations } from "../../features/team/hooks/useInvitations.js";
+import { InvitationTable } from "../../features/team/components/InvitationTable.jsx";
+import { AdminUserFormModal } from "../../features/admin/components/AdminUserFormModal.jsx";
+import { DEFAULT_INVITE_FORM_DATA } from "../../features/admin/constants/departments.js";
+import { UserPlus } from "lucide-react";
 
 /**
  * Presentation Layer: AdminDashboardPage
@@ -57,7 +62,77 @@ export const AdminDashboardPage = () => {
     updateTask,
     deleteTask,
     addLog,
+    refetch: refetchAdminData,
   } = useAdminData();
+
+  const {
+    invitations,
+    loading: invitationsLoading,
+    actionLoadingId: invitationActionId,
+    fetchInvitations,
+    inviteEmployee,
+    resendInvitation,
+    revokeInvitation,
+    approveInvitation,
+  } = useInvitations();
+
+  const [isInviteEmployeeModalOpen, setIsInviteEmployeeModalOpen] = useState(false);
+  const [isInviteSubmitting, setIsInviteSubmitting] = useState(false);
+  const [inviteFormData, setInviteFormData] = useState(DEFAULT_INVITE_FORM_DATA);
+  const [inviteFormError, setInviteFormError] = useState("");
+
+  const handleInviteFieldChange = (field, value) => {
+    setInviteFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleInviteSubmit = async (e) => {
+    e.preventDefault();
+    if (!inviteFormData.name?.trim() || !inviteFormData.email?.trim() || isInviteSubmitting) {
+      setInviteFormError("Please enter both name and email address.");
+      return;
+    }
+    setInviteFormError("");
+    setIsInviteSubmitting(true);
+    try {
+      await inviteEmployee(inviteFormData);
+      setIsInviteEmployeeModalOpen(false);
+      setInviteFormData(DEFAULT_INVITE_FORM_DATA);
+      if (typeof refetchAdminData === "function") {
+        refetchAdminData(true).catch(() => {});
+      }
+    } catch (err) {
+      setInviteFormError(
+        err?.response?.data?.message || err?.message || "Failed to send invitation."
+      );
+    } finally {
+      setIsInviteSubmitting(false);
+    }
+  };
+
+  const runInvitationAction = async (actionFn, id) => {
+    try {
+      await actionFn(id);
+      if (typeof refetchAdminData === "function") {
+        refetchAdminData(true).catch(() => {});
+      }
+    } catch {
+      // toast already handled in useInvitations
+    }
+  };
+
+  const handleRevokeInvitation = (id) => runInvitationAction(revokeInvitation, id);
+  const handleApproveInvitation = (id) => runInvitationAction(approveInvitation, id);
+
+  const handleRemoveUser = async (id) => {
+    try {
+      await removeUser(id);
+      if (typeof fetchInvitations === "function") {
+        fetchInvitations().catch(() => {});
+      }
+    } catch {
+      // toast already handled in useAdminData
+    }
+  };
 
   const { allProjects, addProject } = useProjects({ autoFetch: false });
   const { allTasks, addTask } = useTasks({ autoFetch: false });
@@ -165,9 +240,7 @@ export const AdminDashboardPage = () => {
                   {currentUser?.name || "Administrator"}
                 </p>
                 <p className="text-[10px] text-purple-600 font-semibold capitalize">
-                  {currentUser?.role === "admin"
-                    ? "Super Admin"
-                    : currentUser?.role || "Admin"}
+                  {currentUser?.role || "Admin"}
                 </p>
               </div>
             </div>
@@ -259,7 +332,44 @@ export const AdminDashboardPage = () => {
                 onAddUser={addUser}
                 onUpdateUser={updateUser}
                 onToggleStatus={toggleUserStatus}
-                onRemoveUser={removeUser}
+                onRemoveUser={handleRemoveUser}
+              />
+            </div>
+          )}
+
+          {/* TAB 3B: EMPLOYEE INVITATIONS */}
+          {activeTab === "invitations" && (
+            <div className="max-w-7xl mx-auto space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900 tracking-tight">
+                    Employee Invitations &amp; Onboarding
+                  </h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    Dispatch secure email invitations, monitor delivery statuses, and configure roles.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setInviteFormData(DEFAULT_INVITE_FORM_DATA);
+                    setInviteFormError("");
+                    setIsInviteEmployeeModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary text-white text-xs font-bold hover:bg-primary/90 transition-all shadow-xs cursor-pointer self-start sm:self-auto"
+                >
+                  <UserPlus size={15} />
+                  <span>Invite Employee</span>
+                </button>
+              </div>
+
+              <InvitationTable
+                invitations={invitations}
+                isLoading={invitationsLoading}
+                onResend={resendInvitation}
+                onRevoke={handleRevokeInvitation}
+                onApprove={handleApproveInvitation}
+                actionLoadingId={invitationActionId}
               />
             </div>
           )}
@@ -352,6 +462,18 @@ export const AdminDashboardPage = () => {
           onUpdate={(t) => setSelectedTaskForDetails(t)}
         />
       </Modal>
+
+      {/* Invite Employee Modal */}
+      <AdminUserFormModal
+        isOpen={isInviteEmployeeModalOpen}
+        onClose={() => setIsInviteEmployeeModalOpen(false)}
+        formData={inviteFormData}
+        onFieldChange={handleInviteFieldChange}
+        onSubmit={handleInviteSubmit}
+        formError={inviteFormError}
+        submitLabel="Invite Employee"
+        loading={isInviteSubmitting}
+      />
     </div>
   );
 };

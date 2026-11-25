@@ -8,6 +8,7 @@ async function runTests() {
   const localUserWithoutPassword = new UserModel({
     name: "Alex Smith",
     email: "alex@example.com",
+    isActive: true,
   });
   const valError = localUserWithoutPassword.validateSync();
   assert(
@@ -15,6 +16,28 @@ async function runTests() {
     "Validation must fail: password is required for local users"
   );
   console.log("✔ Local user requires password when googleId is absent");
+
+  // 1b. Invited/created user has isActive true and approvalStatus pending (virtual status: pending)
+  const invitedUser = new UserModel({
+    name: "Invited Smith",
+    email: "invited@example.com",
+    password: "secureRandomPassword123!",
+    isActive: true,
+    approvalStatus: "pending",
+  });
+  const invitedValError = invitedUser.validateSync();
+  assert(!invitedValError, "Invited user validation must succeed");
+  assert.strictEqual(
+    invitedUser.isActive,
+    true,
+    "Invited user must have isActive true"
+  );
+  assert.strictEqual(
+    invitedUser.status,
+    "pending",
+    "Invited user must derive virtual status pending when approvalStatus is pending"
+  );
+  console.log("✔ Invited user validates with isActive true and derived status pending");
 
   // 2. Password NOT required when googleId is present
   const googleUser = new UserModel({
@@ -110,8 +133,8 @@ async function runTests() {
 
     assert.strictEqual(
       capturedRole,
-      "user",
-      "SEC-01: Public registration must ignore 'role: admin' and force 'user'"
+      "member",
+      "SEC-01: Public registration must ignore 'role: admin' and force 'member'"
     );
     console.log("✔ SEC-01: Public registration role escalation is blocked");
   } finally {
@@ -235,6 +258,52 @@ async function runTests() {
     console.log("✔ SEC-11: forgotPassword does not leak resetToken in production");
   } finally {
     configModule.config.NODE_ENV = origNodeEnv;
+    UserModel.findOne = origFindOneUser;
+  }
+
+  // 9. Google Login Pending Approval & cleanEmail verification
+  const { loginWithGoogle } = await import("../src/services/auth.service.js");
+  const { googleAuthClient } = await import("../src/services/google-auth.service.js");
+  const origVerifyIdToken = googleAuthClient.verifyIdToken;
+  const origUserCreate = UserModel.create;
+
+  googleAuthClient.verifyIdToken = async () => ({
+    getPayload: () => ({
+      name: "New Google User",
+      email: "newgoogle@example.com",
+      email_verified: true,
+      sub: "gid-9999",
+      picture: "https://example.com/avatar.png",
+    }),
+  });
+
+  UserModel.findOne = async () => null;
+  let createdGoogleUser = null;
+  UserModel.create = async (doc) => {
+    createdGoogleUser = {
+      _id: "google_user_id_123",
+      ...doc,
+    };
+    return createdGoogleUser;
+  };
+
+  try {
+    await assert.rejects(
+      () => loginWithGoogle("fake-google-credential"),
+      (err) => {
+        assert.strictEqual(err.statusCode, 403);
+        assert.strictEqual(err.code, "PENDING_APPROVAL");
+        return true;
+      },
+      "loginWithGoogle must reject new user with PENDING_APPROVAL"
+    );
+    assert.strictEqual(createdGoogleUser.email, "newgoogle@example.com");
+    assert.strictEqual(createdGoogleUser.approvalStatus, "pending");
+    assert.strictEqual(createdGoogleUser.isActive, true);
+    console.log("✔ New Google user registration assigns PENDING_APPROVAL and blocks login until approved");
+  } finally {
+    googleAuthClient.verifyIdToken = origVerifyIdToken;
+    UserModel.create = origUserCreate;
     UserModel.findOne = origFindOneUser;
   }
 

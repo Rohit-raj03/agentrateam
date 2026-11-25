@@ -7,7 +7,7 @@ import config from '../config/config.js';
  * @param {string} [role] - User role
  * @returns {string} Signed JWT Access Token
  */
-export const generateAccessToken = (user, role = "user") => {
+export const generateAccessToken = (user, role = "member") => {
   const userId =
     typeof user === "object" && user?._id
       ? user._id.toString()
@@ -45,7 +45,7 @@ export const generateAccessToken = (user, role = "user") => {
  * @param {string} [role] - User role
  * @returns {string} Signed JWT Refresh Token
  */
-export const generateRefreshToken = (user, role = "user") => {
+export const generateRefreshToken = (user, role = "member") => {
   const userId =
     typeof user === "object" && user?._id
       ? user._id.toString()
@@ -77,7 +77,7 @@ export const generateRefreshToken = (user, role = "user") => {
  * @param {string} [role] - User role
  * @returns {{ accessToken: string, refreshToken: string }}
  */
-export const generateAccessAndRefreshTokens = (user, role = "user") => {
+export const generateAccessAndRefreshTokens = (user, role = "member") => {
   const accessToken = generateAccessToken(user, role);
   const refreshToken = generateRefreshToken(user, role);
 

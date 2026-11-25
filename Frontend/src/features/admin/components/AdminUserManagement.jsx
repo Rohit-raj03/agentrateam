@@ -5,7 +5,7 @@ import { AdminUserTable } from './AdminUserTable.jsx';
 import { AdminUserFormModal } from './AdminUserFormModal.jsx';
 import { AdminUserDetailsModal } from './AdminUserDetailsModal.jsx';
 import { AdminConfirmationModal } from './AdminConfirmationModal.jsx';
-import { getResponsibilities } from '../constants/departments.js';
+import { getJobTitles } from '../constants/departments.js';
 
 const TEAMS_LIST = [
   'All Teams',
@@ -24,7 +24,6 @@ const DEFAULT_FORM_DATA = {
   email: '',
   role: 'Member',
   department: 'engineering',
-  responsibility: 'frontend',
   jobTitle: 'Frontend Developer',
 };
 
@@ -62,6 +61,7 @@ export const AdminUserManagement = ({
   // Form state
   const [formData, setFormData] = useState(DEFAULT_FORM_DATA);
   const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Confirmation modal state
   const [confirmModal, setConfirmModal] = useState({
@@ -89,7 +89,8 @@ export const AdminUserManagement = ({
       const matchesStatus =
         statusFilter === 'ALL' ||
         (statusFilter === 'ACTIVE' && u.status === 'active') ||
-        (statusFilter === 'INACTIVE' && u.status === 'inactive');
+        (statusFilter === 'PENDING' && u.status === 'pending') ||
+        (statusFilter === 'INACTIVE' && (u.status === 'inactive' || !u.isActive));
 
       return matchesSearch && matchesRole && matchesTeam && matchesStatus;
     });
@@ -110,16 +111,15 @@ export const AdminUserManagement = ({
   const openEditModal = (user) => {
     setEditingUser(user);
     const dept = user.department || 'engineering';
-    const resps = getResponsibilities(dept);
-    const resp = user.responsibility || (resps[0] ? resps[0].value : '');
+    const titles = getJobTitles(dept);
+    const jobTitle = user.jobTitle || (titles[0] ? titles[0].label : '');
     setFormData({
       name: user.name || '',
       username: user.username || '',
       email: user.email || '',
       role: user.role || 'Member',
       department: dept,
-      responsibility: resp,
-      jobTitle: user.jobTitle || '',
+      jobTitle,
     });
     setFormError('');
   };
@@ -128,31 +128,49 @@ export const AdminUserManagement = ({
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleSaveForm = (e) => {
+  const handleSaveForm = async (e) => {
     e.preventDefault();
-    if (!formData.name.trim() || !formData.email.trim()) {
+    if (!formData.name.trim() || !formData.email.trim() || isSubmitting) {
       setFormError('Please enter both name and email address.');
       return;
     }
 
-    if (editingUser) {
-      onUpdateUser(editingUser.id, formData);
-      setEditingUser(null);
-    } else {
-      onAddUser(formData);
-      setIsAddModalOpen(false);
+    setIsSubmitting(true);
+    try {
+      if (editingUser) {
+        await onUpdateUser(editingUser.id, formData);
+        setEditingUser(null);
+      } else {
+        await onAddUser(formData);
+        setIsAddModalOpen(false);
+      }
+    } catch (err) {
+      setFormError(err?.response?.data?.message || err?.message || 'Operation failed');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   const promptDeactivate = (user) => {
-    const isActivating = user.status === 'inactive';
+    const isPending = user.status === 'pending';
+    const isActivating = user.status === 'inactive' || isPending;
     setConfirmModal({
       isOpen: true,
-      title: isActivating ? `Activate ${user.name}?` : `Deactivate ${user.name}?`,
-      message: isActivating
+      title: isPending
+        ? `Approve & Activate ${user.name}?`
+        : isActivating
+        ? `Activate ${user.name}?`
+        : `Deactivate ${user.name}?`,
+      message: isPending
+        ? `This will approve ${user.name}'s account and grant full workspace access. An activation email with login instructions will be sent automatically.`
+        : isActivating
         ? `This user will regain access to their projects, tasks, and system permissions.`
         : `This user will be suspended immediately and cannot log into AgentraTeam until reactivated.`,
-      confirmLabel: isActivating ? 'Activate Account' : 'Deactivate User',
+      confirmLabel: isPending
+        ? 'Approve & Activate'
+        : isActivating
+        ? 'Activate Account'
+        : 'Deactivate User',
       confirmVariant: isActivating ? 'warning' : 'danger',
       onConfirm: () => onToggleStatus(user.id),
     });
@@ -185,7 +203,7 @@ export const AdminUserManagement = ({
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-primary hover:bg-primary-hover active:scale-98 text-white text-xs font-bold shadow-md shadow-indigo-100 transition-all self-start sm:self-auto cursor-pointer"
         >
           <UserPlus size={15} />
-          <span>Add New User</span>
+          <span>Add Member</span>
         </button>
       </div>
 
@@ -242,6 +260,9 @@ export const AdminUserManagement = ({
         onSubmit={handleSaveForm}
         formError={formError}
         teamsList={TEAMS_LIST}
+        title={editingUser ? "Edit User Information" : "Add Member"}
+        submitLabel={editingUser ? "Save Changes" : "Invite Member"}
+        loading={isSubmitting}
       />
 
       {/* 5. View User Profile Modal */}

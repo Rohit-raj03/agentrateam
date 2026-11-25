@@ -11,6 +11,7 @@ import taskRoutes from "../routes/task.routes.js";
 import notificationRoutes from "../routes/notification.routes.js";
 import mediaRoutes from "../routes/media.routes.js";
 import imagekitRoutes from "../routes/imagekit.routes.js";
+import invitationRoutes from "../routes/invitation.routes.js";
 import { helmet } from "../middlewares/helmet.middleware.js";
 import {
   notFoundHandler,
@@ -29,18 +30,21 @@ app.use(helmet());
 const isProduction =
   process.env.NODE_ENV === "production" || config.NODE_ENV === "production";
 
+// Configure allowed origins based on CLIENT_URL from config and localhost in dev
 const allowedOrigins = [
-  config.CLIENT_URL?.replace(/\/$/, ""),
+  config.CLIENT_URL?.replace(/\/+$/, ""),
   ...(!isProduction ? ["http://localhost:5173"] : []),
 ].filter(Boolean);
+
+const uniqueAllowedOrigins = [...new Set(allowedOrigins)];
 
 app.use(
   cors({
     origin: (origin, callback) => {
       if (
         !origin ||
-        allowedOrigins.includes(origin) ||
-        allowedOrigins.includes(origin.replace(/\/$/, ""))
+        uniqueAllowedOrigins.includes(origin) ||
+        uniqueAllowedOrigins.includes(origin.replace(/\/+$/, ""))
       ) {
         callback(null, true);
       } else {
@@ -48,6 +52,8 @@ app.use(
       }
     },
     credentials: true,
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
   }),
 );
 app.use(express.json({ limit: process.env.BODY_LIMIT || "10mb" }));
@@ -65,6 +71,7 @@ app.use("/api/tasks", taskRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/media", mediaRoutes);
 app.use("/api/imagekit", imagekitRoutes);
+app.use("/api/invitations", invitationRoutes);
 
 // 4. Test & Health Check Routes
 app.get("/", (req, res) => {

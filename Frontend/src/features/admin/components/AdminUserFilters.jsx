@@ -72,7 +72,7 @@ export const AdminUserFilters = ({
       <div className="flex items-center justify-between pt-2 border-t border-slate-50 text-xs">
         <div className="flex items-center gap-1.5">
           <span className="text-[11px] font-semibold text-slate-400 mr-1">Status:</span>
-          {['ALL', 'ACTIVE', 'INACTIVE'].map((st) => (
+          {['ALL', 'ACTIVE', 'PENDING', 'INACTIVE'].map((st) => (
             <button
               key={st}
               onClick={() => onStatusChange(st)}
@@ -82,7 +82,13 @@ export const AdminUserFilters = ({
                   : 'bg-slate-100 hover:bg-slate-200 text-slate-600'
               }`}
             >
-              {st === 'ALL' ? 'All Members' : st === 'ACTIVE' ? 'Active' : 'Deactivated'}
+              {st === 'ALL'
+                ? 'All Members'
+                : st === 'ACTIVE'
+                ? 'Active'
+                : st === 'PENDING'
+                ? 'Pending'
+                : 'Deactivated'}
             </button>
           ))}
         </div>

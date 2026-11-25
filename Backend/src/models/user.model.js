@@ -45,13 +45,19 @@ const userSchema = new mongoose.Schema(
 
     role: {
       type: String,
-      enum: ["admin", "user", "member", "manager"],
-      default: "user",
+      enum: ["admin", "manager", "member"],
+      default: "member",
     },
 
     jobTitle: {
       type: String,
       default: "Team Member",
+    },
+
+    jobDescription: {
+      type: String,
+      default: "",
+      trim: true,
     },
 
     department: {
@@ -119,6 +125,12 @@ const userSchema = new mongoose.Schema(
       default: true,
     },
 
+    approvalStatus: {
+      type: String,
+      enum: ["pending", "approved", "revoked"],
+      default: "approved",
+    },
+
     lastActive: {
       type: Date,
       default: Date.now,
@@ -144,8 +156,18 @@ const userSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   },
 );
+
+// Derive account access status from isActive and approvalStatus so 'status' is reserved for future presence
+userSchema.virtual("status").get(function () {
+  if (!this.isActive) return "inactive";
+  if (this.approvalStatus === "pending") return "pending";
+  if (this.approvalStatus === "revoked") return "revoked";
+  return "active";
+});
 
 // Hash password with bcrypt before saving (only if modified and present)
 userSchema.pre("save", async function (next) {

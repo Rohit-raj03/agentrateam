@@ -1,15 +1,20 @@
 import React, { useState, useCallback } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { Mail, Lock, User } from "lucide-react";
 import { Input } from "../../../shared/components/ui/Input.jsx";
 import { Button } from "../../../shared/components/ui/Button.jsx";
 import { useAuth } from "../hooks/useAuth.js";
-import { validateLogin } from "../validation/auth.schema.js";
+import { validateLogin, parseAuthFormError } from "../validation/auth.schema.js";
 import { ROUTES } from "../../../shared/constants/routes.js";
 import { GoogleLoginButton } from "./GoogleLoginButton.jsx";
+import { AuthFormAlert } from "./AuthFormAlert.jsx";
 
 export const LoginForm = () => {
-  const [values, setValues] = useState({ email: "", password: "" });
+  const location = useLocation();
+  const [values, setValues] = useState({
+    email: location.state?.email || "",
+    password: "",
+  });
   const [errors, setErrors] = useState({});
   const { login, loginWithGoogle, loading } = useAuth();
   const navigate = useNavigate();
@@ -30,7 +35,7 @@ export const LoginForm = () => {
       await login(values);
       navigate(ROUTES.DASHBOARD);
     } catch (err) {
-      setErrors({ form: err.message || "Invalid credentials" });
+      setErrors(parseAuthFormError(err, "Invalid credentials"));
     }
   };
 
@@ -41,9 +46,7 @@ export const LoginForm = () => {
         await loginWithGoogle(credential);
         navigate(ROUTES.DASHBOARD);
       } catch (err) {
-        setErrors({
-          form: err.message || "Google sign in failed. Please try again.",
-        });
+        setErrors(parseAuthFormError(err, "Google sign in failed. Please try again."));
       }
     },
     [loginWithGoogle, navigate]
@@ -52,6 +55,7 @@ export const LoginForm = () => {
   const handleGoogleError = useCallback((err) => {
     setErrors({
       form: err.message || "Unable to initialize Google Sign In.",
+      isPending: false,
     });
   }, []);
 
@@ -61,11 +65,7 @@ export const LoginForm = () => {
 
   return (
     <div className="space-y-4">
-      {errors.form && (
-        <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium">
-          {errors.form}
-        </div>
-      )}
+      <AuthFormAlert message={errors.form} isPending={errors.isPending} />
 
       {/* Email / Password Form */}
       <form onSubmit={handleSubmit} className="space-y-4">

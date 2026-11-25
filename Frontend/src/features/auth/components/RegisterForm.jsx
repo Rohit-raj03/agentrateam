@@ -4,9 +4,10 @@ import { User, Mail, Lock } from "lucide-react";
 import { Input } from "../../../shared/components/ui/Input.jsx";
 import { Button } from "../../../shared/components/ui/Button.jsx";
 import { useAuth } from "../hooks/useAuth.js";
-import { validateRegister } from "../validation/auth.schema.js";
+import { validateRegister, parseAuthFormError } from "../validation/auth.schema.js";
 import { ROUTES } from "../../../shared/constants/routes.js";
 import { GoogleLoginButton } from "./GoogleLoginButton.jsx";
+import { AuthFormAlert } from "./AuthFormAlert.jsx";
 
 export const RegisterForm = () => {
   const [values, setValues] = useState({
@@ -34,7 +35,7 @@ export const RegisterForm = () => {
       await register(values);
       navigate(ROUTES.DASHBOARD);
     } catch (err) {
-      setErrors({ form: err.message || "Registration failed" });
+      setErrors(parseAuthFormError(err, "Registration failed"));
     }
   };
 
@@ -45,9 +46,7 @@ export const RegisterForm = () => {
         await loginWithGoogle(credential);
         navigate(ROUTES.DASHBOARD);
       } catch (err) {
-        setErrors({
-          form: err.message || "Google registration failed. Please try again.",
-        });
+        setErrors(parseAuthFormError(err, "Google registration failed. Please try again."));
       }
     },
     [loginWithGoogle, navigate]
@@ -56,16 +55,13 @@ export const RegisterForm = () => {
   const handleGoogleError = useCallback((err) => {
     setErrors({
       form: err.message || "Unable to initialize Google Sign In.",
+      isPending: false,
     });
   }, []);
 
   return (
     <div className="space-y-4">
-      {errors.form && (
-        <div className="p-3 bg-red-50 text-red-600 rounded-xl text-sm font-medium">
-          {errors.form}
-        </div>
-      )}
+      <AuthFormAlert message={errors.form} isPending={errors.isPending} />
 
       {/* Email / Password Registration Form */}
       <form onSubmit={handleSubmit} className="space-y-4">

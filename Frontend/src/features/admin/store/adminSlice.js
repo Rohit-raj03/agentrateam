@@ -65,9 +65,14 @@ const adminSlice = createSlice({
       const userId = action.payload;
       const user = state.users.find((u) => (u.id || u._id) === userId);
       if (user) {
-        const currentActive = user.isActive !== undefined ? user.isActive : user.status === 'active';
-        user.isActive = !currentActive;
-        user.status = !currentActive ? 'active' : 'inactive';
+        if (user.status === 'pending') {
+          user.isActive = true;
+          user.status = 'active';
+        } else {
+          const currentActive = user.isActive !== undefined ? user.isActive : user.status === 'active';
+          user.isActive = !currentActive;
+          user.status = !currentActive ? 'active' : 'inactive';
+        }
       }
     },
     removeUser(state, action) {

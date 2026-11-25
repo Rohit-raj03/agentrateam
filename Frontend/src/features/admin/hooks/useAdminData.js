@@ -32,6 +32,8 @@ const normalizeUser = (u) => {
   else if (rawRole === 'manager') displayRole = 'Project Manager';
 
   const isActive = u.isActive !== undefined ? Boolean(u.isActive) : true;
+  const rawStatus = (u.status || '').toLowerCase();
+  const status = rawStatus === 'pending' ? 'pending' : isActive ? 'active' : 'inactive';
 
   return {
     id: u._id || u.id,
@@ -43,9 +45,8 @@ const normalizeUser = (u) => {
     rawRole: u.role,
     jobTitle: u.jobTitle || (displayRole === 'Admin' ? 'Administrator' : 'Contributor'),
     department: u.department || 'engineering',
-    responsibility: u.responsibility || '',
-    team: u.responsibility || u.department || u.team || 'Core Team',
-    status: isActive ? 'active' : 'inactive',
+    team: u.department || u.team || 'Core Team',
+    status,
     isActive,
     avatar: u.avatar || '',
     lastActive: u.updatedAt ? new Date(u.updatedAt).toLocaleDateString() : 'Recently',
@@ -171,10 +172,9 @@ export function useAdminData(options = {}) {
             ? 'admin'
             : userData.role === 'Project Manager'
             ? 'manager'
-            : 'user',
+            : 'member',
         jobTitle: userData.jobTitle,
         department: userData.department || '',
-        responsibility: userData.responsibility || '',
         phone: userData.phone || '',
       };
 
@@ -194,27 +194,40 @@ export function useAdminData(options = {}) {
 
   const updateUser = useCallback(async (userId, updatedFields) => {
     try {
-      if (updatedFields.role) {
-        let backendRole = 'user';
-        if (updatedFields.role === 'Admin') backendRole = 'admin';
-        else if (updatedFields.role === 'Project Manager') backendRole = 'manager';
-        await adminService.updateUserRole(userId, backendRole);
-      }
+      let normalizedRole = updatedFields.role;
+      if (normalizedRole === 'Admin') normalizedRole = 'admin';
+      else if (normalizedRole === 'Manager' || normalizedRole === 'Project Manager') normalizedRole = 'manager';
+      else if (normalizedRole === 'Member' || normalizedRole === 'User') normalizedRole = 'member';
+
+      const payload = {
+        ...updatedFields,
+        ...(normalizedRole ? { role: normalizedRole } : {}),
+      };
+
+      await adminService.updateUser(userId, payload);
       dispatch(updateUserAction({ id: userId, fields: updatedFields }));
-      showToast('User details updated successfully.');
+      addLog(
+        currentUserName,
+        'updated user profile & credentials',
+        updatedFields.name || 'User',
+        'Users'
+      );
+      showToast('User details updated and notification email sent.');
     } catch (err) {
       const msg =
         err?.response?.data?.message || err?.message || 'Failed to update user';
       showToast(msg, 'error');
+      throw err;
     }
-  }, [dispatch, showToast]);
+  }, [dispatch, currentUserName, addLog, showToast]);
 
   const toggleUserStatus = useCallback(async (userId) => {
     const targetUser = usersRef.current.find(
       (u) => u.id === userId || u._id === userId
     );
     if (!targetUser) return;
-    const newStatus = targetUser.status === 'active' ? 'inactive' : 'active';
+    const isPending = targetUser.status === 'pending';
+    const newStatus = isPending || targetUser.status === 'inactive' ? 'active' : 'inactive';
     const newActiveState = newStatus === 'active';
 
     try {
@@ -222,16 +235,20 @@ export function useAdminData(options = {}) {
       dispatch(toggleUserStatusAction(userId));
       addLog(
         currentUserName,
-        newStatus === 'active'
+        isPending
+          ? 'approved and activated user account'
+          : newStatus === 'active'
           ? 'activated user account'
           : 'deactivated user account',
         targetUser.name,
         'Users'
       );
       showToast(
-        `User "${targetUser.name}" marked as ${
-          newStatus === 'active' ? 'Active' : 'Deactivated'
-        }.`,
+        isPending
+          ? `User "${targetUser.name}" has been approved and activated.`
+          : `User "${targetUser.name}" marked as ${
+              newStatus === 'active' ? 'Active' : 'Deactivated'
+            }.`,
         newStatus === 'active' ? 'success' : 'info'
       );
     } catch (err) {

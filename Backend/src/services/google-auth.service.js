@@ -1,7 +1,7 @@
 import { OAuth2Client } from "google-auth-library";
 import config from "../config/config.js";
 
-const client = new OAuth2Client(config.GOOGLE_CLIENT_ID);
+export const googleAuthClient = new OAuth2Client(config.GOOGLE_CLIENT_ID);
 
 /**
  * Verify Google ID Token using google-auth-library
@@ -16,7 +16,7 @@ export const verifyGoogleToken = async (credential) => {
   }
 
   try {
-    const ticket = await client.verifyIdToken({
+    const ticket = await googleAuthClient.verifyIdToken({
       idToken: credential,
       audience: config.GOOGLE_CLIENT_ID,
     });

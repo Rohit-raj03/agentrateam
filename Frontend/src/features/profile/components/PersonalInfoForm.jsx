@@ -9,17 +9,17 @@ import {
   MapPin,
   Globe,
   Building2,
-  Award,
+  FileText,
 } from "lucide-react";
 import {
   DEPARTMENT_OPTIONS,
-  getResponsibilities,
+  getJobTitles,
 } from "../../admin/constants/departments.js";
 
 /**
  * Feature Component: PersonalInfoForm
  * Layer: features/profile/components/
- * Responsibility: Renders editable input fields for personal information (Name, Username, Email, Phone, Department, Team & Responsibility, Job Title, Bio, Location, Time Zone).
+ * Responsibility: Renders editable input fields for personal information (Name, Username, Email, Phone, Department, Job Title, Bio, Location, Time Zone).
  */
 export const PersonalInfoForm = ({ formData, errors, onChange }) => {
   const timezones = [
@@ -34,39 +34,18 @@ export const PersonalInfoForm = ({ formData, errors, onChange }) => {
     "Australia/Sydney (GMT+10:00)",
   ];
 
-  const currentResponsibilities = getResponsibilities(formData.department);
+  const currentJobTitles = getJobTitles(formData.department);
+  const hasCustomJobTitle =
+    formData.jobTitle &&
+    !currentJobTitles.some((jt) => jt.label === formData.jobTitle);
 
   const handleDepartmentChange = (e) => {
     const newDept = e.target.value;
-    const resps = getResponsibilities(newDept);
-    const firstResp = resps[0];
+    const jobTitles = getJobTitles(newDept);
+    const firstJobTitle = jobTitles[0];
 
     onChange("department", newDept);
-    onChange("responsibility", firstResp ? firstResp.value : "");
-
-    // Optionally suggest jobTitle if empty or matched an existing responsibility label
-    const allLabels = Object.values(getResponsibilities(formData.department)).map(
-      (r) => r.label
-    );
-    if (!formData.jobTitle || allLabels.includes(formData.jobTitle)) {
-      if (firstResp) {
-        onChange("jobTitle", firstResp.label);
-      }
-    }
-  };
-
-  const handleResponsibilityChange = (e) => {
-    const newResp = e.target.value;
-    onChange("responsibility", newResp);
-
-    const found = currentResponsibilities.find((r) => r.value === newResp);
-    if (
-      found &&
-      (!formData.jobTitle ||
-        currentResponsibilities.some((r) => r.label === formData.jobTitle))
-    ) {
-      onChange("jobTitle", found.label);
-    }
+    onChange("jobTitle", firstJobTitle ? firstJobTitle.label : "");
   };
 
   return (
@@ -214,52 +193,55 @@ export const PersonalInfoForm = ({ formData, errors, onChange }) => {
           </div>
         </div>
 
-        {/* Team & Responsibility (Dependent Select) */}
+        {/* Job Title (Dependent Select) */}
         <div className="space-y-1.5">
           <label className="block text-xs font-bold text-slate-700">
-            Team & Responsibility
+            Job Title
           </label>
           <div className="relative">
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-              <Award size={16} />
+              <Briefcase size={16} />
             </div>
             <select
-              value={formData.responsibility || ""}
-              onChange={handleResponsibilityChange}
+              value={formData.jobTitle || ""}
+              onChange={(e) => onChange("jobTitle", e.target.value)}
               disabled={!formData.department}
               className="w-full pl-10 pr-8 py-2.5 bg-[#F8FAFC] text-xs font-semibold text-slate-900 rounded-2xl border border-slate-200/80 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-50 transition-all cursor-pointer disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
             >
               <option value="" disabled>
                 {formData.department
-                  ? "-- Select Responsibility --"
+                  ? "-- Select Job Title --"
                   : "Select Department first"}
               </option>
-              {currentResponsibilities.map((resp) => (
-                <option key={resp.value} value={resp.value}>
-                  {resp.label}
+              {hasCustomJobTitle && (
+                <option value={formData.jobTitle}>{formData.jobTitle}</option>
+              )}
+              {currentJobTitles.map((jt) => (
+                <option key={jt.value} value={jt.label}>
+                  {jt.label}
                 </option>
               ))}
             </select>
           </div>
         </div>
 
-        {/* Job Title / Discipline */}
+        {/* Job Description */}
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
             <label className="block text-xs font-bold text-slate-700">
-              Job Title / Discipline
+              Job Description
             </label>
             <span className="text-[10px] text-slate-400 font-medium">Optional</span>
           </div>
           <div className="relative">
             <div className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-              <Briefcase size={16} />
+              <FileText size={16} />
             </div>
             <input
               type="text"
-              value={formData.jobTitle}
-              onChange={(e) => onChange("jobTitle", e.target.value)}
-              placeholder="e.g. Software Engineer, UI Designer, QA Engineer"
+              value={formData.jobDescription || ""}
+              onChange={(e) => onChange("jobDescription", e.target.value)}
+              placeholder="e.g. Building frontend UI, API integrations..."
               className="w-full pl-10 pr-4 py-2.5 bg-[#F8FAFC] text-xs font-semibold text-slate-900 rounded-2xl border border-slate-200/80 focus:border-indigo-400 focus:bg-white focus:outline-none focus:ring-4 focus:ring-indigo-50 transition-all"
             />
           </div>

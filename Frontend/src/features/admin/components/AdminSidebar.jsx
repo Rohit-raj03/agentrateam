@@ -11,6 +11,7 @@ import {
   Building2,
   Shield,
   ArrowLeft,
+  Mail,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ROUTES } from "../../../shared/constants/routes.js";
@@ -27,6 +28,7 @@ const ADMIN_NAV_GROUPS = [
     title: "User Management",
     items: [
       { id: "users", label: "All Users", icon: Users, badge: "8" },
+      { id: "invitations", label: "Employee Invitations", icon: Mail },
       { id: "roles", label: "Roles & Permissions", icon: ShieldCheck },
     ],
   },

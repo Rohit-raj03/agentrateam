@@ -22,50 +22,65 @@ export function useAuth() {
   const dispatch = useDispatch();
   const { user, token, isAuthenticated, loading, error } = useSelector((state) => state.auth);
 
-  const login = useCallback(async (credentials) => {
-    try {
-      dispatch(loginStart());
-      const data = await authService.login(credentials);
-      dispatch(loginSuccess(data));
-      showToast.auth.loginSuccess();
-      return data;
-    } catch (err) {
-      const errMsg = err.message || 'Login failed';
-      dispatch(loginFailure(errMsg));
-      showToast.auth.loginError(err);
-      throw err;
-    }
-  }, [dispatch]);
+  const runAuthFlow = useCallback(
+    async ({
+      serviceCall,
+      onSuccessAction,
+      onSuccessToast,
+      onErrorToast,
+      fallbackErrorMsg,
+    }) => {
+      try {
+        dispatch(loginStart());
+        const data = await serviceCall();
+        dispatch(onSuccessAction(data));
+        onSuccessToast();
+        return data;
+      } catch (err) {
+        const errMsg = err.message || fallbackErrorMsg;
+        dispatch(loginFailure(errMsg));
+        onErrorToast(err);
+        throw err;
+      }
+    },
+    [dispatch]
+  );
 
-  const register = useCallback(async (userData) => {
-    try {
-      dispatch(loginStart());
-      const data = await authService.register(userData);
-      dispatch(registerSuccess(data));
-      showToast.auth.registerSuccess();
-      return data;
-    } catch (err) {
-      const errMsg = err.message || 'Registration failed';
-      dispatch(loginFailure(errMsg));
-      showToast.auth.registerError(err);
-      throw err;
-    }
-  }, [dispatch]);
+  const login = useCallback(
+    (credentials) =>
+      runAuthFlow({
+        serviceCall: () => authService.login(credentials),
+        onSuccessAction: loginSuccess,
+        onSuccessToast: showToast.auth.loginSuccess,
+        onErrorToast: showToast.auth.loginError,
+        fallbackErrorMsg: 'Login failed',
+      }),
+    [runAuthFlow]
+  );
 
-  const loginWithGoogle = useCallback(async (credential) => {
-    try {
-      dispatch(loginStart());
-      const data = await authService.googleLogin(credential);
-      dispatch(loginSuccess(data));
-      showToast.auth.loginSuccess();
-      return data;
-    } catch (err) {
-      const errMsg = err.message || 'Google sign in failed';
-      dispatch(loginFailure(errMsg));
-      showToast.auth.loginError(err);
-      throw err;
-    }
-  }, [dispatch]);
+  const register = useCallback(
+    (userData) =>
+      runAuthFlow({
+        serviceCall: () => authService.register(userData),
+        onSuccessAction: registerSuccess,
+        onSuccessToast: showToast.auth.registerSuccess,
+        onErrorToast: showToast.auth.registerError,
+        fallbackErrorMsg: 'Registration failed',
+      }),
+    [runAuthFlow]
+  );
+
+  const loginWithGoogle = useCallback(
+    (credential) =>
+      runAuthFlow({
+        serviceCall: () => authService.googleLogin(credential),
+        onSuccessAction: loginSuccess,
+        onSuccessToast: showToast.auth.loginSuccess,
+        onErrorToast: showToast.auth.loginError,
+        fallbackErrorMsg: 'Google sign in failed',
+      }),
+    [runAuthFlow]
+  );
 
   const checkAuth = useCallback(async () => {
     try {

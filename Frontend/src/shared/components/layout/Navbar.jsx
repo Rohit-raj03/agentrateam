@@ -6,6 +6,13 @@ import { useNavigate } from "react-router-dom";
 import { ROUTES } from "../../constants/routes.js";
 import { Avatar } from "../ui/Avatar.jsx";
 
+const ROLE_BADGE_STYLES = {
+  admin: "bg-purple-50 text-purple-700",
+  manager: "bg-indigo-50 text-indigo-700",
+  member: "bg-slate-100 text-slate-600",
+  user: "bg-slate-100 text-slate-600",
+};
+
 /**
  * Shared Layout Component: Navbar
  * Layer: shared/components/layout/
@@ -79,11 +86,11 @@ export const Navbar = ({ onToggleSidebar }) => {
           </button>
         </div>
 
-        {/* User Profile Avatar with dropdown arrow */}
+        {/* User Profile Avatar with name, role, and dropdown arrow */}
         <div className="relative">
           <button
             onClick={() => setIsProfileOpen((prev) => !prev)}
-            className="flex items-center gap-2 p-1 rounded-full hover:bg-slate-50 transition-colors focus:outline-none"
+            className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-slate-50 transition-colors focus:outline-none"
           >
             <Avatar
               src={user?.avatar}
@@ -92,7 +99,19 @@ export const Navbar = ({ onToggleSidebar }) => {
               size="sm"
               className="ring-2 ring-slate-100"
             />
-            <ChevronDown size={15} className="text-slate-400" />
+            <div className="hidden sm:flex flex-col items-start text-left min-w-0">
+              <span className="text-xs font-semibold text-slate-800 leading-tight max-w-[130px] truncate">
+                {user?.name || "Team Member"}
+              </span>
+              <span
+                className={`mt-0.5 text-[10px] font-semibold capitalize px-1.5 py-0.5 rounded-md leading-tight ${
+                  ROLE_BADGE_STYLES[user?.role] || ROLE_BADGE_STYLES.user
+                }`}
+              >
+                {user?.role || "user"}
+              </span>
+            </div>
+            <ChevronDown size={15} className="text-slate-400 shrink-0" />
           </button>
 
           {/* Profile Dropdown */}

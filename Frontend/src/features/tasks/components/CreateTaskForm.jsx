@@ -102,7 +102,7 @@ export const CreateTaskForm = ({
     initialData?.creator
   )?.toString();
   const isTaskCreator = Boolean(
-    currentUserId && taskCreatorId && currentUserId === taskCreatorId
+    currentUserId && taskCreatorId && currentUserId === taskCreatorId,
   );
 
   const initialProjectId = (
@@ -114,21 +114,25 @@ export const CreateTaskForm = ({
   )?.toString();
 
   const initialProject = availableProjects.find(
-    (p) => (p.id || p._id)?.toString() === initialProjectId
+    (p) => (p.id || p._id)?.toString() === initialProjectId,
   );
 
   const isCurrentProjectManager = Boolean(
     initialProject &&
-      currentUserId &&
-      ((initialProject.owner?._id || initialProject.owner)?.toString() === currentUserId ||
-        (initialProject.manager?._id || initialProject.manager)?.toString() === currentUserId ||
-        initialProject.members?.some(
-          (m) =>
-            (m.id?.toString() === currentUserId ||
-              m._id?.toString() === currentUserId ||
-              (m.user?._id || m.user?.id || m.user)?.toString() === currentUserId) &&
-            ((m.role || "").toLowerCase() === "owner" || (m.role || "").toLowerCase() === "admin")
-        ))
+    currentUserId &&
+    ((initialProject.owner?._id || initialProject.owner)?.toString() ===
+      currentUserId ||
+      (initialProject.manager?._id || initialProject.manager)?.toString() ===
+        currentUserId ||
+      initialProject.members?.some(
+        (m) =>
+          (m.id?.toString() === currentUserId ||
+            m._id?.toString() === currentUserId ||
+            (m.user?._id || m.user?.id || m.user)?.toString() ===
+              currentUserId) &&
+          ((m.role || "").toLowerCase() === "owner" ||
+            (m.role || "").toLowerCase() === "admin"),
+      )),
   );
 
   const canReassignProject =
@@ -538,7 +542,8 @@ export const CreateTaskForm = ({
             </select>
             {!canReassignProject && (
               <p className="text-[11px] text-amber-600 font-medium pt-0.5">
-                Only the task creator, project manager, or an administrator can reassign this task to another project.
+                Only the task creator, project manager, or an administrator can
+                reassign this task to another project.
               </p>
             )}
 
@@ -768,9 +773,7 @@ export const CreateTaskForm = ({
         {submitting ? (
           <>
             <Loader2 size={15} className="animate-spin mr-1" />
-            <span>
-              {isEditMode ? "Updating Task..." : "Creating Task..."}
-            </span>
+            <span>{isEditMode ? "Updating Task..." : "Creating Task..."}</span>
           </>
         ) : (
           <>

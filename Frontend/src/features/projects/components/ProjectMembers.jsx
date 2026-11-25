@@ -84,8 +84,6 @@ export const ProjectMembers = ({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [memberSearchQuery, setMemberSearchQuery] = useState("");
   const [editingMemberId, setEditingMemberId] = useState(null);
-  const [editRole, setEditRole] = useState("Member");
-  const [editProjectRole, setEditProjectRole] = useState("Contributor");
 
   // Add Member State
   const [eligibleUsers, setEligibleUsers] = useState([]);
@@ -212,7 +210,6 @@ export const ProjectMembers = ({
 
   const startEditMember = (member) => {
     setEditingMemberId(member.id);
-    setEditRole(member.role || "Member");
     setNewMemberRole(member.role || "Member");
 
     const rawRoles =
@@ -244,13 +241,6 @@ export const ProjectMembers = ({
     setSelectedUsersToAdd([prefilledUser]);
     setAddError("");
     setIsAddModalOpen(true);
-  };
-
-  const handleSaveMemberRole = async (memberId) => {
-    if (onUpdateMemberRole) {
-      await onUpdateMemberRole(memberId, editRole, editProjectRole);
-    }
-    setEditingMemberId(null);
   };
 
   return (
@@ -445,7 +435,6 @@ export const ProjectMembers = ({
             const roleInfo = ROLE_BADGES[member.role] || ROLE_BADGES.Member;
             const Icon = roleInfo.icon;
             const isOwner = member.role === "Owner";
-            const isEditing = editingMemberId === member.id;
 
             // Extract all member project role tags
             const memberRoles = (() => {

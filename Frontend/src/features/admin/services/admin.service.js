@@ -21,6 +21,11 @@ export const adminService = {
     return res;
   },
 
+  updateUser: async (id, data) => {
+    const res = await apiClient.patch(`/admin/users/${id}`, data);
+    return res;
+  },
+
   updateUserRole: async (id, role) => {
     const res = await apiClient.patch(`/admin/users/${id}/role`, { role });
     return res;

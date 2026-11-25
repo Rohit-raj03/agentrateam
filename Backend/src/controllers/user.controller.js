@@ -60,6 +60,7 @@ export const updateUserProfile = async (req, res) => {
       phone,
       bio,
       jobTitle,
+      jobDescription,
       department,
       responsibility,
       location,
@@ -88,6 +89,7 @@ export const updateUserProfile = async (req, res) => {
     if (phone !== undefined) user.phone = phone.trim();
     if (bio !== undefined) user.bio = bio.trim();
     if (jobTitle !== undefined) user.jobTitle = jobTitle.trim();
+    if (jobDescription !== undefined) user.jobDescription = jobDescription.trim();
     if (department !== undefined) user.department = department.trim();
     if (responsibility !== undefined) user.responsibility = responsibility.trim();
     if (location !== undefined) user.location = location.trim();
@@ -136,6 +138,7 @@ export const updateUserProfile = async (req, res) => {
         department: updatedUser.department,
         responsibility: updatedUser.responsibility,
         jobTitle: updatedUser.jobTitle,
+        jobDescription: updatedUser.jobDescription,
         phone: updatedUser.phone,
         bio: updatedUser.bio,
         location: updatedUser.location,

@@ -17,4 +17,6 @@ export const ROUTES = {
   PROFILE: "/profile",
   SETTINGS: "/settings",
   ADMIN: "/admin",
+  ADMIN_EMPLOYEES: "/admin/employees",
+  ACCEPT_INVITATION: "/accept-invitation",
 };

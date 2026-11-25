@@ -61,11 +61,11 @@ export const departmentResponsibilities = {
 };
 
 /**
- * Filter responsibilities when department changes
+ * Filter job titles when department changes
  * @param {string} department
  * @returns {Array<{ value: string, label: string }>}
  */
-export const getResponsibilities = (department) => {
+export const getJobTitles = (department) => {
   return departmentResponsibilities[department] || [];
 };
 
@@ -77,3 +77,15 @@ export const DEPARTMENT_OPTIONS = [
   { value: "operations", label: "Operations" },
   { value: "leadership", label: "Leadership" },
 ];
+
+export const DEFAULT_INVITE_FORM_DATA = {
+  name: "",
+  username: "",
+  email: "",
+  role: "Member",
+  department: "engineering",
+  jobTitle: "Frontend Developer",
+  phoneNumber: "",
+  phone: "",
+  location: "Remote",
+};

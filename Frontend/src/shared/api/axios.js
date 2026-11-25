@@ -156,6 +156,7 @@ axiosInstance.interceptors.response.use(
     const customError = new Error(message);
     customError.status = error.response?.status;
     customError.data = error.response?.data;
+    customError.code = error.response?.data?.code;
 
     return Promise.reject(customError);
   }

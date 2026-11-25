@@ -20,3 +20,21 @@ export const validateRegister = (values) => {
   }
   return errors;
 };
+
+/**
+ * Normalizes auth/OAuth errors and detects pending administrator approval state.
+ */
+export const parseAuthFormError = (err, fallbackMessage = 'Authentication failed') => {
+  const msg = err?.message || '';
+  const lower = msg.toLowerCase();
+  const isPending =
+    err?.code === 'PENDING_APPROVAL' ||
+    lower.includes('pending') ||
+    lower.includes('verification is pending') ||
+    lower.includes('administrator approval');
+
+  return {
+    form: msg || fallbackMessage,
+    isPending,
+  };
+};

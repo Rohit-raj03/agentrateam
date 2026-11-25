@@ -62,6 +62,24 @@ export const protect = async (req, res, next) => {
       });
     }
 
+    if (user.approvalStatus === "pending") {
+      return res.status(403).json({
+        success: false,
+        code: "PENDING_APPROVAL",
+        message:
+          "Your account is pending administrator approval. Please wait for an administrator to approve your account.",
+      });
+    }
+
+    if (user.approvalStatus === "revoked") {
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_REVOKED",
+        message:
+          "Your account access has been revoked by an administrator.",
+      });
+    }
+
     // Token version revocation check (invalidates previous sessions on password change/reset)
     const tokenVersion = decoded.tokenVersion !== undefined ? decoded.tokenVersion : 0;
     const currentVersion = user.tokenVersion || 0;

@@ -1,16 +1,23 @@
 import React, { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { Input } from '../../../shared/components/ui/Input.jsx';
 import { Button } from '../../../shared/components/ui/Button.jsx';
 
 export const InviteMember = ({ onInvite, onCancel }) => {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState('Team Member');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!email) return;
-    onInvite({ email, name: email.split('@')[0], role });
-    setEmail('');
+    if (!email || isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onInvite({ email, name: email.split('@')[0], role });
+      setEmail('');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -39,8 +46,17 @@ export const InviteMember = ({ onInvite, onCancel }) => {
         </select>
       </div>
       <div className="flex justify-end gap-3 pt-3">
-        <Button variant="secondary" onClick={onCancel}>Cancel</Button>
-        <Button type="submit">Send Invite</Button>
+        <Button variant="secondary" onClick={onCancel} disabled={isSubmitting}>Cancel</Button>
+        <Button type="submit" disabled={isSubmitting} className="flex items-center gap-2">
+          {isSubmitting ? (
+            <>
+              <Loader2 size={14} className="animate-spin" />
+              <span>Inviting...</span>
+            </>
+          ) : (
+            'Send Invite'
+          )}
+        </Button>
       </div>
     </form>
   );
