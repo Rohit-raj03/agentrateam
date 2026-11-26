@@ -20,7 +20,7 @@ import { ROUTES } from "../../constants/routes.js";
  * Layer: shared/components/layout/
  * Responsibility: Responsive navigation sidebar.
  * - Desktop (>= 1024px): Permanent in-flow sidebar with zero outer border radius,
- *   compact 216px width (or 68px collapsed), and smooth expand/collapse toggle.
+ *   compact 240px width (or 68px collapsed), and smooth expand/collapse toggle.
  * - Mobile & Tablet (< 1024px): Clean slide-out overlay drawer (zero layout displacement when closed).
  */
 export const Sidebar = ({ isOpen, onClose }) => {
@@ -195,27 +195,15 @@ export const Sidebar = ({ isOpen, onClose }) => {
       <aside
         onMouseLeave={() => setActiveTooltip(null)}
         className={`hidden lg:flex flex-col shrink-0 h-screen bg-white border-r border-slate-200/80 rounded-none relative z-40 overflow-visible transition-all duration-200 ease-in-out ${
-          isCollapsed ? "w-17" : "w-54"
+          isCollapsed ? "w-17" : "w-60"
         }`}
       >
-        {/* Floating Collapse / Expand Toggle Button at the intersection (cross) of Sidebar & Navbar */}
-        <button
-          type="button"
-          onClick={handleToggleCollapse}
-          className="absolute -right-3 top-10 -translate-y-1/2 z-20 flex h-7 w-7 cursor-pointer items-center justify-center bg-transparent text-slate-500 transition-colors hover:text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-[#4361EE]/30 rounded-sm"
-          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          aria-expanded={!isCollapsed}
+        {/* Top Header / Branding Section (Equal height to Navbar h-20, aligned logo, text, and collapse toggle) */}
+        <div
+          className={`relative h-20 flex items-center shrink-0 border-b border-slate-200/80 ${
+            isCollapsed ? "justify-center px-2" : "justify-between px-4"
+          }`}
         >
-          {isCollapsed ? (
-            <PanelLeftOpen size={17} strokeWidth={1.75} />
-          ) : (
-            <PanelLeftClose size={17} strokeWidth={1.75} />
-          )}
-        </button>
-
-        {/* Top Header / Branding Section (Equal height to Navbar h-20, centered logo & text, bottom gray border line) */}
-        <div className="h-20 px-3.5 flex items-center justify-center shrink-0 border-b border-slate-200/80">
           {isCollapsed ? (
             <div
               onClick={() => navigate(ROUTES.DASHBOARD)}
@@ -231,7 +219,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
           ) : (
             <div
               onClick={() => navigate(ROUTES.DASHBOARD)}
-              className="flex items-center justify-center gap-3 cursor-pointer min-w-0 group"
+              className="flex items-center gap-3 cursor-pointer min-w-0 group"
             >
               <img
                 src="/CloudAgentra_logo.png"
@@ -243,11 +231,31 @@ export const Sidebar = ({ isOpen, onClose }) => {
               </span>
             </div>
           )}
+
+          {/* Collapse / Expand Toggle Button linked directly to Header Logo section */}
+          <button
+            type="button"
+            onClick={handleToggleCollapse}
+            className={`flex items-center justify-center p-1.5 rounded-xl text-slate-400 bg-transparent border border-transparent hover:text-slate-800 hover:bg-slate-100 hover:border-slate-300/80 transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 ${
+              isCollapsed
+                ? "absolute right-0 translate-x-1/2 top-1/2 -translate-y-1/2 z-40"
+                : "shrink-0"
+            }`}
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-expanded={!isCollapsed}
+          >
+            {isCollapsed ? (
+              <PanelLeftOpen size={18} strokeWidth={1.8} />
+            ) : (
+              <PanelLeftClose size={18} strokeWidth={1.8} />
+            )}
+          </button>
         </div>
 
         {/* Primary Navigation Items with Increased Button Spacing */}
         <nav
-          className={`flex-1 flex flex-col gap-2.5 px-2.5 py-4 ${
+          className={`flex-1 flex flex-col gap-2 px-3 py-4 ${
             isCollapsed ? "overflow-visible" : "overflow-y-auto no-scrollbar"
           }`}
         >
@@ -278,7 +286,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
 
                   {!isCollapsed && (
                     <>
-                      <span className="text-[13.5px] tracking-tight truncate font-medium text-slate-400">
+                      <span className="text-sm tracking-tight truncate font-medium text-slate-400">
                         {item.label}
                       </span>
                       <span className="ml-auto text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-400 border border-slate-200/80">
@@ -295,7 +303,9 @@ export const Sidebar = ({ isOpen, onClose }) => {
                         px-2.5 py-1 rounded-lg whitespace-nowrap shadow-lg
                         z-60 pointer-events-none animate-in fade-in zoom-in-95 duration-150 flex items-center"
                     >
-                      <span>{item.badge || "Soon"}</span>
+                      <span>
+                        {item.label} {item.badge && `(${item.badge})`}
+                      </span>
                       <span className="absolute -left-1 top-1/2 -translate-y-1/2 border-4 border-transparent border-r-slate-900" />
                     </span>
                   )}
@@ -318,8 +328,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
                       : "w-full h-11 px-3.5 gap-3 rounded-xl"
                   } ${
                     isActive
-                      ? "bg-primary text-white shadow-xs"
-                      : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                      ? "bg-primary text-white shadow-xs font-semibold"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium"
                   }`
                 }
               >
@@ -337,7 +347,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
 
                     {!isCollapsed && (
                       <span
-                        className={`text-[13.5px] tracking-tight truncate transition-colors ${
+                        className={`text-sm tracking-tight truncate transition-colors ${
                           isActive
                             ? "font-semibold text-white"
                             : "font-medium text-slate-600 group-hover:text-slate-900"
@@ -367,8 +377,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
         </nav>
 
         {/* Bottom Section: Divider & Settings with Increased Spacing */}
-        <div className="px-2.5 pb-5 pt-2 shrink-0">
-          <div className="border-t border-slate-200/70 my-2.5 mx-1" />
+        <div className="px-3 pb-5 pt-2 shrink-0">
+          <div className="border-t border-slate-200/70 my-2 mx-1" />
           <NavLink
             to={settingsNavItem.to}
             onMouseEnter={() =>
@@ -384,8 +394,8 @@ export const Sidebar = ({ isOpen, onClose }) => {
                   : "w-full h-11 px-3.5 gap-3 rounded-xl"
               } ${
                 isActive
-                  ? "bg-primary text-white shadow-xs"
-                  : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                  ? "bg-primary text-white shadow-xs font-semibold"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-50 font-medium"
               }`
             }
           >
@@ -405,7 +415,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
 
                   {!isCollapsed && (
                     <span
-                      className={`text-[13.5px] tracking-tight truncate transition-colors ${
+                      className={`text-sm tracking-tight truncate transition-colors ${
                         isActive
                           ? "font-semibold text-white"
                           : "font-medium text-slate-600 group-hover:text-slate-900"
