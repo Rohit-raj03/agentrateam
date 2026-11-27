@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Search, Bell, ChevronDown, Menu } from "lucide-react";
 import { useAuth } from "../../../features/auth/hooks/useAuth.js";
 import { useNotifications } from "../../../features/notifications/hooks/useNotifications.js";
@@ -24,6 +24,34 @@ export const Navbar = ({ onToggleSidebar }) => {
   const navigate = useNavigate();
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [search, setSearch] = useState("");
+  const profileMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!isProfileOpen) return;
+
+    const handleClickOutside = (event) => {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target)
+      ) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", handleClickOutside, true);
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("pointerdown", handleClickOutside, true);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isProfileOpen]);
 
   return (
     <header className="h-20 bg-white px-4 md:px-5 flex items-center justify-between sticky top-0 z-30 border-b border-slate-100/80">
@@ -87,9 +115,12 @@ export const Navbar = ({ onToggleSidebar }) => {
         </div>
 
         {/* User Profile Avatar with name, role, and dropdown arrow */}
-        <div className="relative">
+        <div className="relative" ref={profileMenuRef}>
           <button
+            type="button"
             onClick={() => setIsProfileOpen((prev) => !prev)}
+            aria-haspopup="menu"
+            aria-expanded={isProfileOpen}
             className="flex items-center gap-2.5 px-2 py-1.5 rounded-xl hover:bg-slate-50 transition-colors focus:outline-none"
           >
             <Avatar
