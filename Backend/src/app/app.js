@@ -75,7 +75,7 @@ app.use("/api/invitations", invitationRoutes);
 
 // 4. Test & Health Check Routes
 app.get("/", (req, res) => {
-  res.send("AgentraTeam Backend API is running!");
+  res.send("AgentraZira Backend API is running!");
 });
 
 app.get("/api/health", (req, res) => {

@@ -29,7 +29,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
   // Remember collapsed preference across reloads
   const [isCollapsed, setIsCollapsed] = useState(() => {
     try {
-      const saved = localStorage.getItem("agentrateam_sidebar_collapsed");
+      const saved = localStorage.getItem("agentrazira_sidebar_collapsed");
       if (saved !== null) return saved === "true";
     } catch {
       // ignore
@@ -43,7 +43,7 @@ export const Sidebar = ({ isOpen, onClose }) => {
     setIsCollapsed((prev) => {
       const next = !prev;
       try {
-        localStorage.setItem("agentrateam_sidebar_collapsed", String(next));
+        localStorage.setItem("agentrazira_sidebar_collapsed", String(next));
       } catch {
         // ignore
       }
@@ -99,11 +99,11 @@ export const Sidebar = ({ isOpen, onClose }) => {
               >
                 <img
                   src="/CloudAgentra_logo.png"
-                  alt="AgentraTeam"
+                  alt="AgentraZira"
                   className="w-9 h-9 object-contain shrink-0 drop-shadow-xs transition-transform group-hover:scale-105"
                 />
                 <span className="font-extrabold text-slate-900 text-lg tracking-tight truncate">
-                  AgentraTeam
+                  AgentraZira
                 </span>
               </div>
               <button
@@ -208,11 +208,11 @@ export const Sidebar = ({ isOpen, onClose }) => {
             <div
               onClick={() => navigate(ROUTES.DASHBOARD)}
               className="flex items-center justify-center cursor-pointer group py-1"
-              title="AgentraTeam"
+              title="AgentraZira"
             >
               <img
                 src="/CloudAgentra_logo.png"
-                alt="AgentraTeam"
+                alt="AgentraZira"
                 className="w-9 h-9 object-contain drop-shadow-xs transition-transform group-hover:scale-105"
               />
             </div>
@@ -223,11 +223,11 @@ export const Sidebar = ({ isOpen, onClose }) => {
             >
               <img
                 src="/CloudAgentra_logo.png"
-                alt="AgentraTeam"
+                alt="AgentraZira"
                 className="w-9 h-9 object-contain shrink-0 drop-shadow-xs transition-transform group-hover:scale-105"
               />
               <span className="font-extrabold text-slate-900 text-lg tracking-tight truncate">
-                AgentraTeam
+                AgentraZira
               </span>
             </div>
           )}

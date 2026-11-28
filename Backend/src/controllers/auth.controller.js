@@ -295,12 +295,12 @@ export const forgotPassword = async (req, res) => {
     const resetUrl = `${config.CLIENT_URL}/reset-password?token=${resetToken}`;
     await sendEmail({
       to: user.email,
-      subject: "Password Reset Request - AgentraTeam",
+      subject: "Password Reset Request - AgentraZira",
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
           <h2>Password Reset Request</h2>
           <p>Hello ${user.name || "User"},</p>
-          <p>You requested a password reset for your AgentraTeam account. Click the button below to reset your password. This link is valid for 15 minutes.</p>
+          <p>You requested a password reset for your AgentraZira account. Click the button below to reset your password. This link is valid for 15 minutes.</p>
           <div style="margin: 24px 0;">
             <a href="${resetUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Reset Password</a>
           </div>

@@ -17,8 +17,8 @@ import {
  */
 export const AdminOrgSettings = ({ onSaveSettings }) => {
   const [settings, setSettings] = useState({
-    orgName: 'AgentraTeam Enterprise Inc.',
-    domain: 'agentrateam.io',
+    orgName: 'AgentraZira Enterprise Inc.',
+    domain: 'agentrazira.io',
     timezone: 'Asia/Kolkata (GMT+05:30)',
     enforce2FA: true,
     sessionTimeout: '12 Hours',
@@ -152,7 +152,7 @@ export const AdminOrgSettings = ({ onSaveSettings }) => {
 
         <button
           type="button"
-          onClick={() => alert('System snapshot exported successfully as agentrateam-backup.json')}
+          onClick={() => alert('System snapshot exported successfully as agentrazira-backup.json')}
           className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 font-semibold text-slate-700 hover:bg-slate-50 transition-colors shrink-0"
         >
           <Download size={14} />

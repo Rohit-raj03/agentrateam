@@ -17,7 +17,7 @@ export const extractErrorMessage = (err, fallback = 'Something went wrong.') => 
 };
 
 /**
- * AgentraTeam Unified Toast Notification Utility
+ * AgentraZira Unified Toast Notification Utility
  * Follows minimal & modern SaaS design principles.
  */
 export const showToast = {

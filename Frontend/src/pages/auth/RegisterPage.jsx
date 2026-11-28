@@ -8,14 +8,14 @@ export const RegisterPage = () => {
         <div className="text-center mb-8">
           <img
             src="/CloudAgentra_logo.png"
-            alt="AgentraTeam"
+            alt="AgentraZira"
             className="w-14 h-14 object-contain mx-auto mb-3 drop-shadow-md"
           />
           <h1 className="text-2xl font-bold text-slate-900">
             Create an account
           </h1>
           <p className="text-sm text-slate-500 mt-1">
-            Start collaborating with your team on AgentraTeam
+            Start collaborating with your team on AgentraZira
           </p>
         </div>
         <RegisterForm />

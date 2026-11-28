@@ -27,7 +27,7 @@ export const isSafeHttpUrl = (url) => {
     const baseOrigin =
       typeof window !== "undefined" && window?.location?.origin
         ? window.location.origin
-        : "https://agentrateam.io";
+        : "https://agentrazira.io";
     const parsed = new URL(trimmed, baseOrigin);
     return parsed.protocol === "http:" || parsed.protocol === "https:";
   } catch {

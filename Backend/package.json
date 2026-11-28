@@ -1,7 +1,7 @@
 {
-  "name": "agentrateam-backend",
+  "name": "agentrazira-backend",
   "version": "1.0.0",
-  "description": "REST API Backend for AgentraTeam Project Management Application",
+  "description": "REST API Backend for AgentraZira Project Management Application",
   "main": "src/server.js",
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
   },
   "keywords": [
     "express",
-    "agentrateam",
+    "agentrazira",
     "project-management",
     "api"
   ],

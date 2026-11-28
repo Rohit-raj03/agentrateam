@@ -1,4 +1,4 @@
-# 🚀 AgentraTeam — Enterprise Task & Collaboration Platform
+# 🚀 AgentraZira — Enterprise Task & Collaboration Platform
 
 > **Full-Stack Architectural & Implementation Guidebook**  
 > _Engineered for Developers, Technical Leads, and AI Autonomous Agents._  
@@ -8,7 +8,7 @@
 
 ## 🧭 Executive Summary & Core Mission
 
-**AgentraTeam** is a high-performance, full-stack enterprise project management and team collaboration web application. It synthesizes the fluid, keyboard-friendly speed of **Linear**, the structured clarity and context of **Notion**, and the governance, security, and granular Role-Based Access Control (RBAC) of **Jira**.
+**AgentraZira** is a high-performance, full-stack enterprise project management and team collaboration web application. It synthesizes the fluid, keyboard-friendly speed of **Linear**, the structured clarity and context of **Notion**, and the governance, security, and granular Role-Based Access Control (RBAC) of **Jira**.
 
 The application is built on a **fully decoupled monorepo architecture** featuring:
 
@@ -142,7 +142,7 @@ cp .env.example .env
 PORT=5050
 NODE_ENV=development
 CLIENT_URL=http://localhost:5173
-MONGO_URI=mongodb://localhost:27017/agentrateam
+MONGO_URI=mongodb://localhost:27017/agentrazira
 
 # Authentication Secrets
 ACCESS_TOKEN_SECRET=your_jwt_access_secret_key_here
@@ -190,7 +190,7 @@ npm install
 
 ```env
 VITE_API_BASE_URL=http://localhost:5050/api
-VITE_APP_NAME=AgentraTeam
+VITE_APP_NAME=AgentraZira
 VITE_GOOGLE_CLIENT_ID=579849600986-538stk5hoe6gij2b43806eajvgsqeprf.apps.googleusercontent.com
 ```
 
@@ -441,4 +441,4 @@ For in-depth specifications, consult the dedicated documentation files:
 
 ---
 
-_Maintained by the AgentraTeam Core Architecture Team. Built for seamless collaboration between human engineers and autonomous coding agents._
+_Maintained by the AgentraZira Core Architecture Team. Built for seamless collaboration between human engineers and autonomous coding agents._

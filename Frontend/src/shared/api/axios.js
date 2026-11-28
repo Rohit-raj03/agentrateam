@@ -31,7 +31,7 @@ const handleSessionTermination = () => {
   storage.remove('auth_token');
   storage.remove('auth_user');
   storage.remove('auth_refresh_token');
-  storage.remove('agentrateam');
+  storage.remove('agentrazira');
   storage.remove('user_settings_notifications');
   if (axiosInstance.defaults?.headers?.common) {
     delete axiosInstance.defaults.headers.common['Authorization'];

@@ -11,7 +11,7 @@ export const ChatUserProfile = ({ user, onClose }) => {
   const current = user || {
     name: 'Sarah Chen',
     role: 'Lead UI/UX Designer',
-    email: 'sarah.chen@agentrateam.io',
+    email: 'sarah.chen@agentrazira.io',
     timezone: 'GMT+5:30 (Local Time)',
     status: 'online',
   };

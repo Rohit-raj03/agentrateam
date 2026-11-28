@@ -165,7 +165,7 @@ export const AdminUserManagement = ({
         ? `This will approve ${user.name}'s account and grant full workspace access. An activation email with login instructions will be sent automatically.`
         : isActivating
         ? `This user will regain access to their projects, tasks, and system permissions.`
-        : `This user will be suspended immediately and cannot log into AgentraTeam until reactivated.`,
+        : `This user will be suspended immediately and cannot log into AgentraZira until reactivated.`,
       confirmLabel: isPending
         ? 'Approve & Activate'
         : isActivating

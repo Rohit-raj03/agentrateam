@@ -186,11 +186,11 @@ export const AcceptInvitationPage = () => {
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center mb-6">
         <img
           src="/CloudAgentra_logo.png"
-          alt="AgentraTeam Logo"
+          alt="AgentraZira Logo"
           className="w-14 h-14 object-contain mx-auto mb-3 drop-shadow-md"
         />
         <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-          AgentraTeam
+          AgentraZira
         </h1>
         <p className="text-sm text-slate-500 mt-1">
           Complete your onboarding &amp; join your team

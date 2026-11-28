@@ -103,7 +103,7 @@ export const sendEmail = async ({ to, subject, html, text }) => {
   }
 
   const senderEmail = config.SMTP_EMAIL;
-  const from = `"agentrateam" <${senderEmail}>`;
+  const from = `"AgentraZira" <${senderEmail}>`;
 
   try {
     const info = await transporter.sendMail({

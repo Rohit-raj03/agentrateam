@@ -70,7 +70,7 @@ const dispatchInvitationEmail = async ({ invitation, rawToken, expiryHours }) =>
 
   const emailResult = await sendEmail({
     to: invitation.email,
-    subject: "You're invited to join AgentraTeam!",
+    subject: "You're invited to join AgentraZira!",
     html,
   });
 
@@ -428,7 +428,7 @@ export const revokeInvitation = async ({ id }) => {
   if (invitation.email) {
     await sendEmail({
       to: invitation.email,
-      subject: "Your AgentraTeam invitation has been revoked",
+      subject: "Your AgentraZira invitation has been revoked",
       html: accountRevokedTemplate({
         name: invitation.name,
         clientBaseUrl,
@@ -706,10 +706,10 @@ export const acceptInvitation = async ({
 
     await sendEmail({
       to: targetUser.email,
-      subject: "Welcome to AgentraTeam - Invitation Accepted!",
+      subject: "Welcome to AgentraZira - Invitation Accepted!",
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-          <h2>Welcome to AgentraTeam, ${targetUser.name}!</h2>
+          <h2>Welcome to AgentraZira, ${targetUser.name}!</h2>
           <p>Your invitation has been successfully accepted and your workspace account is now <strong>ACTIVE</strong>.</p>
           <p>You can now access your projects, tasks, and collaborate with your team:</p>
           <div style="margin: 24px 0;">
@@ -797,7 +797,7 @@ export const updateInvitationStatus = async ({ id, status, adminUser }) => {
 
   await sendEmail({
     to: invitation.email,
-    subject: "Your AgentraTeam invitation has been approved and activated!",
+    subject: "Your AgentraZira invitation has been approved and activated!",
     html: accountApprovedTemplate({
       name: invitation.name,
       loginUrl,

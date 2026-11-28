@@ -25,7 +25,7 @@ export const InviteMember = ({ onInvite, onCancel }) => {
       <Input
         label="Member Email"
         type="email"
-        placeholder="colleague@agentrateam.io"
+        placeholder="colleague@agentrazira.io"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required

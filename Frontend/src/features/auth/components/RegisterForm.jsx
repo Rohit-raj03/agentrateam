@@ -78,7 +78,7 @@ export const RegisterForm = () => {
           label="Email Address"
           name="email"
           type="email"
-          placeholder="alex@agentrateam.io"
+          placeholder="alex@agentrazira.io"
           value={values.email}
           onChange={handleChange}
           icon={Mail}

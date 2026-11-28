@@ -59,7 +59,7 @@ export const ResetPasswordPage = () => {
           <Link to="/" className="inline-block group focus:outline-none">
             <img
               src="/CloudAgentra_logo.png"
-              alt="AgentraTeam Logo"
+              alt="AgentraZira Logo"
               className="w-14 h-14 object-contain mx-auto mb-3.5 drop-shadow-md group-hover:scale-105 transition-transform"
             />
           </Link>
@@ -67,7 +67,7 @@ export const ResetPasswordPage = () => {
             Set New Password
           </h1>
           <p className="text-xs text-slate-500 mt-1.5 leading-relaxed max-w-xs mx-auto">
-            Choose a strong, secure new password for your AgentraTeam account.
+            Choose a strong, secure new password for your AgentraZira account.
           </p>
         </div>
 

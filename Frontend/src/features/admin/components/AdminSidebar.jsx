@@ -80,7 +80,7 @@ export const AdminSidebar = ({ activeTab, onSelectTab, overdueCount = 0 }) => {
                 Admin Console
               </h2>
               <p className="text-[10px] text-slate-400 font-medium">
-                AgentraTeam Enterprise
+                AgentraZira Enterprise
               </p>
             </div>
           </div>

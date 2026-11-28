@@ -69,12 +69,12 @@ export const Navbar = ({ onToggleSidebar }) => {
 
         <img
           src="/CloudAgentra_logo.png"
-          alt="AgentraTeam"
+          alt="AgentraZira"
           className="w-9 h-9 object-contain drop-shadow-sm cursor-pointer transition-transform hover:scale-105"
           onClick={() => navigate(ROUTES.DASHBOARD)}
         />
         <span className="font-extrabold text-slate-900 text-lg tracking-tight hidden sm:inline-block">
-          AgentraTeam
+          AgentraZira
         </span>
       </div>
 

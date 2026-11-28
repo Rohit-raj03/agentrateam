@@ -3,7 +3,7 @@ import { Toaster as HotToaster } from 'react-hot-toast';
 
 /**
  * Shared UI Component: Toaster
- * Global toast notification container with modern SaaS styling matching AgentraTeam design system.
+ * Global toast notification container with modern SaaS styling matching AgentraZira design system.
  */
 export const Toaster = () => {
   return (

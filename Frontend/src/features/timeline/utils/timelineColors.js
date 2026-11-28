@@ -1,7 +1,7 @@
 /**
  * Utility: timelineColors.js
  * Layer: features/timeline/utils/
- * Responsibility: Project-inherited color system for AgentraTeam Timeline.
+ * Responsibility: Project-inherited color system for AgentraZira Timeline.
  * Ensures every task bar strictly inherits its theme color from its parent project,
  * dynamically generates tints, borders, hover states, gradients, and guarantees
  * WCAG accessible text contrast.

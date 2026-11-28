@@ -12,7 +12,7 @@ export const escapeHtml = (unsafe) => {
 };
 
 /**
- * Generate branded HTML invitation email template matching AgentraTeam theme
+ * Generate branded HTML invitation email template matching AgentraZira theme
  * @param {Object} options
  * @param {string} options.name - Invitee full name
  * @param {string} [options.jobTitle] - Assigned job title
@@ -20,7 +20,7 @@ export const escapeHtml = (unsafe) => {
  * @param {string} [options.jobProfile] - Assigned job profile
  * @param {string} options.role - System role (e.g. member, manager)
  * @param {string} options.invitationUrl - Full URL with secure token
- * @param {string} [options.companyName] - Organization name (default: AgentraTeam)
+ * @param {string} [options.companyName] - Organization name (default: AgentraZira)
  * @param {string} [options.logoUrl] - Trusted logo image HTTPS URL
  * @param {number} [options.expiresHours] - Expiry window in hours (default: 48)
  * @returns {string} Safe HTML string
@@ -32,7 +32,7 @@ export const invitationTemplate = ({
   jobProfile,
   role,
   invitationUrl,
-  companyName = "AgentraTeam",
+  companyName = "AgentraZira",
   logoUrl = "https://ik.imagekit.io/oyscf1yk1/logo's/CloudAgentaLogo.png?updatedAt=1795424167269",
   expiresHours = 48,
 }) => {

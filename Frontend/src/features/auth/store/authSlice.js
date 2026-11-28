@@ -72,7 +72,7 @@ const authSlice = createSlice({
       state.isAuthenticated = false;
       state.error = null;
       storage.remove('auth_user');
-      storage.remove('agentrateam');
+      storage.remove('agentrazira');
       storage.remove('user_settings_notifications');
       storage.remove('auth_token');
       storage.remove('auth_refresh_token');

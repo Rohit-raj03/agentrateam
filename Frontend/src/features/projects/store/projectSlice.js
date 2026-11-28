@@ -2,7 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { storage } from "../../../shared/utils/localStorage.js";
 import { logout } from "../../auth/store/authSlice.js";
 
-const initialProjects = storage.get("agentrateam", []);
+const initialProjects = storage.get("agentrazira", []);
 
 const projectSlice = createSlice({
   name: "projects",
@@ -24,7 +24,7 @@ const projectSlice = createSlice({
           !serverProjects.some((sp) => (sp.id || sp._id) === (lp.id || lp._id)),
       );
       state.projects = [...localProjects, ...serverProjects];
-      storage.set("agentrateam", state.projects);
+      storage.set("agentrazira", state.projects);
       state.loading = false;
       state.error = null;
     },
@@ -52,7 +52,7 @@ const projectSlice = createSlice({
       } else {
         state.projects[existsIndex] = newProject;
       }
-      storage.set("agentrateam", state.projects);
+      storage.set("agentrazira", state.projects);
     },
     updateProject(state, action) {
       const updated = action.payload;
@@ -62,7 +62,7 @@ const projectSlice = createSlice({
       );
       if (idx !== -1) {
         state.projects[idx] = { ...state.projects[idx], ...updated };
-        storage.set("agentrateam", state.projects);
+        storage.set("agentrazira", state.projects);
       }
     },
     deleteProject(state, action) {
@@ -70,7 +70,7 @@ const projectSlice = createSlice({
       state.projects = state.projects.filter(
         (p) => p.id !== id && p._id !== id,
       );
-      storage.set("agentrateam", state.projects);
+      storage.set("agentrazira", state.projects);
     },
     tagMemberToProject(state, action) {
       const {
@@ -112,7 +112,7 @@ const projectSlice = createSlice({
             projectRoles: rawTags,
             tags: rawTags,
           });
-          storage.set("agentrateam", state.projects);
+          storage.set("agentrazira", state.projects);
         }
       }
     },
@@ -125,7 +125,7 @@ const projectSlice = createSlice({
         project.members = project.members.filter(
           (m) => (m.id || m._id) !== memberId,
         );
-        storage.set("agentrateam", state.projects);
+        storage.set("agentrazira", state.projects);
       }
     },
     updateMemberRoleInProject(state, action) {
@@ -157,7 +157,7 @@ const projectSlice = createSlice({
             mem.tags = action.payload.tags;
             mem.projectRoles = action.payload.tags;
           }
-          storage.set("agentrateam", state.projects);
+          storage.set("agentrazira", state.projects);
         }
       }
     },
@@ -170,7 +170,7 @@ const projectSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder.addCase(logout, () => {
-      storage.remove("agentrateam");
+      storage.remove("agentrazira");
       return {
         projects: [],
         filter: "ALL",

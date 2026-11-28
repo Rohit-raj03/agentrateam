@@ -199,7 +199,7 @@ export const updateUserRole = async (req, res) => {
 
     await sendEmail({
       to: user.email,
-      subject: `Your AgentraTeam role has been updated to ${normalizedRole.toUpperCase()}`,
+      subject: `Your AgentraZira role has been updated to ${normalizedRole.toUpperCase()}`,
       html: roleUpdatedTemplate({
         name: user.name,
         role: normalizedRole,
@@ -431,13 +431,13 @@ export const updateUserDetails = async (req, res) => {
         )
         .join("");
 
-      const emailSubject = "Your AgentraTeam account details have been updated";
+      const emailSubject = "Your AgentraZira account details have been updated";
       const emailHtml = `
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 24px; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
           <div style="margin-bottom: 20px;">
             <h2 style="color: #0f172a; margin-top: 0; font-size: 20px;">Hello ${user.name},</h2>
             <p style="color: #475569; font-size: 14px; line-height: 1.5;">
-              An administrator has updated your profile credentials, role permissions, or department responsibility on <strong>AgentraTeam</strong>.
+              An administrator has updated your profile credentials, role permissions, or department responsibility on <strong>AgentraZira</strong>.
             </p>
           </div>
 
@@ -557,7 +557,7 @@ export const toggleUserStatus = async (req, res) => {
 
         await sendEmail({
           to: user.email,
-          subject: "Your AgentraTeam account has been approved and activated!",
+          subject: "Your AgentraZira account has been approved and activated!",
           html: accountApprovedTemplate({
             name: user.name,
             loginUrl,
@@ -572,7 +572,7 @@ export const toggleUserStatus = async (req, res) => {
       try {
         await sendEmail({
           to: user.email,
-          subject: "Your AgentraTeam account has been deactivated",
+          subject: "Your AgentraZira account has been deactivated",
           html: accountDeactivatedTemplate({
             name: user.name,
             clientBaseUrl,
@@ -648,7 +648,7 @@ export const deleteUser = async (req, res) => {
 
       await sendEmail({
         to: user.email,
-        subject: "Your AgentraTeam invitation has been revoked",
+        subject: "Your AgentraZira invitation has been revoked",
         html: accountRevokedTemplate({
           name: user.name,
           clientBaseUrl,

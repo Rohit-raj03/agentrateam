@@ -133,7 +133,7 @@ export const PersonalInfoForm = ({ formData, errors, onChange }) => {
               type="email"
               value={formData.email}
               onChange={(e) => onChange("email", e.target.value)}
-              placeholder="you@agentrateam.io"
+              placeholder="you@agentrazira.io"
               className={`w-full pl-10 pr-4 py-2.5 bg-[#F8FAFC] text-xs font-semibold text-slate-900 rounded-2xl border ${
                 errors.email
                   ? "border-rose-400 focus:border-rose-500"

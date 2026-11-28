@@ -10,7 +10,7 @@ export const accountApprovedTemplate = ({ name, loginUrl, context = "account" })
 
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
-      <h2>Welcome to AgentraTeam, ${name}!</h2>
+      <h2>Welcome to AgentraZira, ${name}!</h2>
       <p>${actionText}</p>
       <p>Your account status is now: <strong style="color: #16a34a;">ACTIVE (Approved)</strong>.</p>
       <p>You can now log in using your registered credentials or Google Sign-In:</p>
@@ -25,8 +25,8 @@ export const accountApprovedTemplate = ({ name, loginUrl, context = "account" })
 export const accountRevokedTemplate = ({ name, clientBaseUrl, context = "invitation" }) => {
   const detailText =
     context === "user_deleted"
-      ? "Your account and associated invitation on <strong>AgentraTeam</strong> have been <strong>revoked</strong> and removed by an administrator."
-      : "Your pending invitation to join <strong>AgentraTeam</strong> has been <strong>revoked</strong> by an administrator.";
+      ? "Your account and associated invitation on <strong>AgentraZira</strong> have been <strong>revoked</strong> and removed by an administrator."
+      : "Your pending invitation to join <strong>AgentraZira</strong> has been <strong>revoked</strong> by an administrator.";
 
   return `
     <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
@@ -36,7 +36,7 @@ export const accountRevokedTemplate = ({ name, clientBaseUrl, context = "invitat
       <div style="margin: 24px 0;">
         <a href="${clientBaseUrl}" style="background-color: #64748b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Visit Workspace</a>
       </div>
-      <p style="color: #64748b; font-size: 14px;">Regards,<br>AgentraTeam Administration</p>
+      <p style="color: #64748b; font-size: 14px;">Regards,<br>AgentraZira Administration</p>
     </div>
   `;
 };
@@ -44,7 +44,7 @@ export const accountRevokedTemplate = ({ name, clientBaseUrl, context = "invitat
 export const accountDeactivatedTemplate = ({ name, clientBaseUrl }) => `
   <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
     <h2>Hello ${name},</h2>
-    <p>Your account on AgentraTeam has been updated to: <strong style="color: #dc2626;">DEACTIVATED</strong> by an administrator.</p>
+    <p>Your account on AgentraZira has been updated to: <strong style="color: #dc2626;">DEACTIVATED</strong> by an administrator.</p>
     <p>Your workspace access has been temporarily suspended.</p>
     <div style="margin: 24px 0;">
       <a href="${clientBaseUrl}" style="background-color: #64748b; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Visit Workspace</a>
@@ -56,7 +56,7 @@ export const accountDeactivatedTemplate = ({ name, clientBaseUrl }) => `
 export const roleUpdatedTemplate = ({ name, role, clientBaseUrl }) => `
   <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 24px;">
     <h2>Hello ${name},</h2>
-    <p>Your account role on AgentraTeam has been updated to <strong>${role.toUpperCase()}</strong> by an administrator.</p>
+    <p>Your account role on AgentraZira has been updated to <strong>${role.toUpperCase()}</strong> by an administrator.</p>
     <p>Your new permissions are now active across your workspace.</p>
     <div style="margin: 24px 0;">
       <a href="${clientBaseUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: 600; display: inline-block;">Open Workspace</a>
